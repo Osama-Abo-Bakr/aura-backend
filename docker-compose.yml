@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  # -------------------------------------------------------------------------
+  # FastAPI application
+  # -------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: aura-backend:dev
+    container_name: aura_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Hot-reload: mount the app directory so changes are picked up instantly.
+      # Uvicorn is started with --reload in development (see command override).
+      - ./app:/app/app
+    env_file:
+      - .env
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host", "0.0.0.0",
+        "--port", "8000",
+        "--reload",
+      ]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Redis — Celery broker + result backend
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: aura_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
