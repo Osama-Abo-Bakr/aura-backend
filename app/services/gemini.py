@@ -52,25 +52,50 @@ Tone: warm, empathetic, non-judgmental, and professional.
 
 
 async def stream_chat_response(
-    conversation_history: list[dict],
-    new_message: str,
+    messages: list[dict],
     language: str = "ar",
 ) -> AsyncIterator[str]:
     """
-    Stream a conversational response from Gemini Flash.
+    Stream a conversational health Q&A response via Gemini 2.0 Flash using SSE.
 
     Args:
-        conversation_history: List of prior messages in the format
-            [{"role": "user"|"model", "parts": [{"text": "..."}]}].
-        new_message: The latest user message.
+        messages: Full message list in the format
+            [{"role": "user"|"assistant", "content": str}, ...].
+            The last message is sent as the new turn; all prior messages
+            become the chat history (Gemini roles: "user" / "model").
         language: 'ar' or 'en' — hints the model to respond in the right language.
 
     Yields:
         Text chunks as they arrive from the Gemini streaming API.
     """
-    raise NotImplementedError("stream_chat_response will be implemented in Week 2.")
-    # Required to make the function an async generator at the type level.
-    yield  # type: ignore[misc]
+    import google.generativeai as genai
+
+    from app.core.config import settings
+
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel(
+        model_name=FLASH_MODEL,
+        system_instruction=HEALTH_SYSTEM_PROMPT,
+    )
+
+    # Convert messages to Gemini history format.
+    # messages uses "user" / "assistant"; Gemini uses "user" / "model".
+    history = []
+    for msg in messages[:-1]:  # all but the last message
+        history.append(
+            {
+                "role": "user" if msg["role"] == "user" else "model",
+                "parts": [msg["content"]],
+            }
+        )
+
+    chat = model.start_chat(history=history)
+    last_message = messages[-1]["content"]
+
+    response = await chat.send_message_async(last_message, stream=True)
+    async for chunk in response:
+        if chunk.text:
+            yield chunk.text
 
 
 async def analyze_skin(

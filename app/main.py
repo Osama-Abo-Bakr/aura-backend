@@ -32,12 +32,17 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # Middleware
 # ---------------------------------------------------------------------------
+_allowed_origins = list(
+    {settings.FRONTEND_URL, "http://localhost:3000"} - {"", None}  # type: ignore[arg-type]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Type"],
 )
 
 # ---------------------------------------------------------------------------

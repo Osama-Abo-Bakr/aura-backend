@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS profiles (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID        NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name           TEXT        NOT NULL,
     date_of_birth       DATE,
@@ -60,7 +60,7 @@ CREATE TRIGGER trg_profiles_updated_at
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS subscriptions (
-    id                      UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id                 UUID        NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     tier                    TEXT        NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'premium')),
     status                  TEXT        NOT NULL DEFAULT 'active'
@@ -90,7 +90,7 @@ CREATE TRIGGER trg_subscriptions_updated_at
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS ai_interactions (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     interaction_type    TEXT        NOT NULL CHECK (interaction_type IN ('chat', 'skin', 'report')),
     tokens_used         INTEGER,
@@ -113,7 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_interactions_user_type_date
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS conversations (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title               TEXT,
     language            TEXT        NOT NULL DEFAULT 'ar' CHECK (language IN ('ar', 'en')),
@@ -144,7 +144,7 @@ CREATE POLICY "users_delete_own_conversations"
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS messages (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_id     UUID        NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     role                TEXT        NOT NULL CHECK (role IN ('user', 'assistant')),
@@ -171,7 +171,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS analyses (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     analysis_type       TEXT        NOT NULL CHECK (analysis_type IN ('skin', 'report')),
     status              TEXT        NOT NULL DEFAULT 'queued'
@@ -208,7 +208,7 @@ CREATE INDEX IF NOT EXISTS idx_analyses_user_created
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS health_logs (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     log_date            DATE        NOT NULL,
     mood                SMALLINT    CHECK (mood BETWEEN 1 AND 10),
@@ -258,7 +258,7 @@ CREATE INDEX IF NOT EXISTS idx_health_logs_user_date
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS wellness_plans (
-    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title               TEXT        NOT NULL,
     description         TEXT,
