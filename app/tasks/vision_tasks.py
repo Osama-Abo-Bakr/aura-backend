@@ -1,55 +1,111 @@
 """
 Celery tasks for async vision processing.
 
-Week 1: task skeletons only.
-Full logic (download file → call Gemini → persist result → notify) ships in Week 2.
+Week 3: full implementations — download file → call Gemini → persist result.
 """
 
 from __future__ import annotations
 
-from app.tasks.celery_app import celery
+import asyncio
+
+from app.db.supabase import supabase_admin
+from app.tasks.celery_app import celery as celery_app
 
 
-@celery.task(
-    name="vision_tasks.process_skin_analysis",
-    bind=True,
-    max_retries=3,
-    default_retry_delay=30,
-)
-def process_skin_analysis(self, analysis_id: str, file_path: str, language: str = "ar") -> None:
-    """
-    Background task: download a skin image from storage, run Gemini Vision
-    analysis, and persist the results to the analyses table.
+@celery_app.task(bind=True, max_retries=3, name="tasks.process_skin_analysis")
+def process_skin_analysis(
+    self,
+    analysis_id: str,
+    file_path: str,
+    language: str,
+    user_id: str,
+) -> dict:
+    """Process skin analysis asynchronously."""
+    try:
+        from app.services.gemini import VISION_MODEL, analyze_skin
+        from app.services.storage import download_file
 
-    Args:
-        analysis_id: UUID of the analyses row to update.
-        file_path: Storage path of the uploaded image.
-        language: Response language for the Gemini prompt.
-    """
-    raise NotImplementedError("process_skin_analysis will be implemented in Week 2.")
+        # Download file
+        file_bytes, content_type = asyncio.get_event_loop().run_until_complete(
+            download_file(file_path)
+        )
+
+        # Run Gemini analysis
+        result = asyncio.get_event_loop().run_until_complete(
+            analyze_skin(file_bytes, content_type, language)
+        )
+
+        # Update analyses table with result
+        supabase_admin.table("analyses").update(
+            {
+                "result_json": result,
+                "model_used": VISION_MODEL,
+                "status": "completed",
+            }
+        ).eq("id", analysis_id).execute()
+
+        # Record quota interaction
+        supabase_admin.table("ai_interactions").insert(
+            {
+                "user_id": user_id,
+                "type": "skin",
+                "model_used": VISION_MODEL,
+                "result_json": result,
+            }
+        ).execute()
+
+        return {"status": "completed", "analysis_id": analysis_id}
+
+    except Exception as exc:
+        # Update status to failed
+        supabase_admin.table("analyses").update(
+            {"status": "failed"}
+        ).eq("id", analysis_id).execute()
+        raise self.retry(exc=exc, countdown=10)
 
 
-@celery.task(
-    name="vision_tasks.process_report_analysis",
-    bind=True,
-    max_retries=3,
-    default_retry_delay=30,
-)
+@celery_app.task(bind=True, max_retries=3, name="tasks.process_report_analysis")
 def process_report_analysis(
     self,
     analysis_id: str,
     file_path: str,
-    language: str = "ar",
-    report_type: str | None = None,
-) -> None:
-    """
-    Background task: download a medical report from storage, run Gemini Vision
-    analysis, and persist the results to the analyses table.
+    language: str,
+    user_id: str,
+) -> dict:
+    """Process medical report analysis asynchronously."""
+    try:
+        from app.services.gemini import VISION_MODEL, explain_medical_report
+        from app.services.storage import download_file
 
-    Args:
-        analysis_id: UUID of the analyses row to update.
-        file_path: Storage path of the uploaded report (PDF or image).
-        language: Response language for the Gemini prompt.
-        report_type: Optional hint about the report category.
-    """
-    raise NotImplementedError("process_report_analysis will be implemented in Week 2.")
+        file_bytes, content_type = asyncio.get_event_loop().run_until_complete(
+            download_file(file_path)
+        )
+
+        result = asyncio.get_event_loop().run_until_complete(
+            explain_medical_report(file_bytes, content_type, language)
+        )
+
+        supabase_admin.table("analyses").update(
+            {
+                "result_json": result,
+                "model_used": VISION_MODEL,
+                "status": "completed",
+            }
+        ).eq("id", analysis_id).execute()
+
+        supabase_admin.table("ai_interactions").insert(
+            {
+                "user_id": user_id,
+                "type": "report",
+                "model_used": VISION_MODEL,
+                "result_json": result,
+            }
+        ).execute()
+
+        return {"status": "completed", "analysis_id": analysis_id}
+
+    except Exception as exc:
+        supabase_admin.table("analyses").update(
+            {"status": "failed"}
+        ).eq("id", analysis_id).execute()
+        raise self.retry(exc=exc, countdown=10)

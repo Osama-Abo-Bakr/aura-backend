@@ -1,10 +1,12 @@
 """
-Analysis endpoints — Week 2 implementation.
+Analysis endpoints — Week 3 implementation.
 
 Routes:
-  POST /api/v1/analysis/upload-url   — get a signed Supabase Storage upload URL
-  POST /api/v1/analysis/skin         — run skin analysis via Gemini Vision
-  GET  /api/v1/analysis/history      — paginated analysis history for the user
+  POST /api/v1/analysis/upload-url       — get a signed Supabase Storage upload URL
+  POST /api/v1/analysis/skin             — dispatch async skin analysis via Celery
+  POST /api/v1/analysis/report           — dispatch async medical report analysis via Celery
+  GET  /api/v1/analysis/{id}/status      — poll status / result for any analysis
+  GET  /api/v1/analysis/history          — paginated analysis history for the user
 """
 
 from __future__ import annotations
@@ -12,13 +14,13 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app.core.deps import get_current_user, get_current_user_with_tier, make_quota_checker
 from app.db.supabase import supabase_admin
-from app.services.gemini import VISION_MODEL, analyze_skin
-from app.services.storage import download_file, generate_upload_url
+from app.services.gemini import VISION_MODEL
+from app.services.storage import generate_upload_url
 
 router = APIRouter(prefix="/analysis")
 
@@ -51,6 +53,11 @@ class UploadURLResponse(BaseModel):
 
 
 class SkinAnalysisRequest(BaseModel):
+    file_path: str
+    language: Literal["en", "ar"] = "en"
+
+
+class ReportAnalysisRequest(BaseModel):
     file_path: str
     language: Literal["en", "ar"] = "en"
 
@@ -104,63 +111,138 @@ async def get_upload_url(
 @router.post(
     "/skin",
     status_code=status.HTTP_200_OK,
-    summary="Analyze a skin image with Gemini Vision",
+    summary="Dispatch async skin analysis via Celery",
     dependencies=[Depends(make_quota_checker("skin"))],
 )
 async def run_skin_analysis(
     body: SkinAnalysisRequest,
-    background_tasks: BackgroundTasks,
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict:
     """
-    Download the uploaded file from Supabase Storage, run Gemini Vision skin
-    analysis, persist the result, and return it immediately (synchronous in
-    Week 2 — BackgroundTasks wired for future async promotion).
+    Insert a pending analyses row, dispatch a Celery task for Gemini Vision
+    skin analysis, and return immediately so the client can poll for completion.
+    """
+    from app.tasks.vision_tasks import process_skin_analysis
+
+    user_id: str = current_user["sub"]
+    analysis_id = str(uuid.uuid4())
+
+    # 1. Insert pending row.
+    supabase_admin.table("analyses").insert(
+        {
+            "id": analysis_id,
+            "user_id": user_id,
+            "type": "skin",
+            "file_path": body.file_path,
+            "language": body.language,
+            "status": "processing",
+        }
+    ).execute()
+
+    # 2. Dispatch Celery task.
+    process_skin_analysis.delay(analysis_id, body.file_path, body.language, user_id)
+
+    # 3. Return immediately.
+    return {"analysis_id": analysis_id, "status": "processing"}
+
+
+# ---------------------------------------------------------------------------
+# POST /analysis/report
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/report",
+    status_code=status.HTTP_200_OK,
+    summary="Dispatch async medical report analysis via Celery",
+    dependencies=[Depends(make_quota_checker("report"))],
+)
+async def run_report_analysis(
+    body: ReportAnalysisRequest,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict:
+    """
+    Insert a pending analyses row, dispatch a Celery task for Gemini Vision
+    medical report analysis, and return immediately so the client can poll.
+    """
+    from app.tasks.vision_tasks import process_report_analysis
+
+    user_id: str = current_user["sub"]
+    analysis_id = str(uuid.uuid4())
+
+    # 1. Insert pending row.
+    supabase_admin.table("analyses").insert(
+        {
+            "id": analysis_id,
+            "user_id": user_id,
+            "type": "report",
+            "file_path": body.file_path,
+            "language": body.language,
+            "status": "processing",
+        }
+    ).execute()
+
+    # 2. Dispatch Celery task.
+    process_report_analysis.delay(analysis_id, body.file_path, body.language, user_id)
+
+    # 3. Return immediately.
+    return {"analysis_id": analysis_id, "status": "processing"}
+
+
+# ---------------------------------------------------------------------------
+# GET /analysis/{id}/status
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/{analysis_id}/status",
+    status_code=status.HTTP_200_OK,
+    summary="Poll the status and result of an analysis job",
+)
+async def get_analysis_status(
+    analysis_id: str,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict:
+    """
+    Fetch the current status (and result once completed) for a given analysis.
+    Returns 404 if the analysis does not exist or belongs to a different user.
     """
     user_id: str = current_user["sub"]
 
-    # 1. Download the file from storage.
-    try:
-        image_bytes, content_type = await download_file(body.file_path)
-    except Exception as exc:
+    resp = (
+        supabase_admin.table("analyses")
+        .select("id, status, result_json, type, created_at")
+        .eq("id", analysis_id)
+        .maybe_single()
+        .execute()
+    )
+
+    row = resp.data
+    if not row or row.get("user_id") != user_id:
+        # Re-fetch with user_id filter to avoid leaking existence.
+        row_resp = (
+            supabase_admin.table("analyses")
+            .select("id, status, result_json, type, created_at")
+            .eq("id", analysis_id)
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        row = row_resp.data
+
+    if not row:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"error": "file_download_failed", "detail": str(exc)},
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "analysis_not_found"},
         )
 
-    # 2. Call Gemini Vision.
-    try:
-        result = await analyze_skin(image_bytes, content_type, body.language)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"error": "analysis_failed", "detail": str(exc)},
-        )
-
-    # 3. Persist to `analyses` table.
-    analysis_id = str(uuid.uuid4())
-    analysis_row = {
-        "id": analysis_id,
-        "user_id": user_id,
-        "type": "skin",
-        "file_path": body.file_path,
-        "result_json": result,
-        "model_used": VISION_MODEL,
-        "language": body.language,
+    return {
+        "analysis_id": row["id"],
+        "status": row["status"],
+        "result": row.get("result_json"),
+        "type": row["type"],
+        "created_at": row["created_at"],
     }
-    supabase_admin.table("analyses").insert(analysis_row).execute()
-
-    # 4. Record in `ai_interactions` for quota tracking.
-    interaction_row = {
-        "user_id": user_id,
-        "interaction_type": "skin",
-        "model_used": VISION_MODEL,
-        "result_json": result,
-    }
-    supabase_admin.table("ai_interactions").insert(interaction_row).execute()
-
-    # 5. Return the analysis result with the analysis_id.
-    return {**result, "analysis_id": analysis_id}
 
 
 # ---------------------------------------------------------------------------

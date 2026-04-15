@@ -153,7 +153,48 @@ async def explain_medical_report(
     Returns:
         Parsed result dict matching the ReportAnalysisResponse schema.
     """
-    raise NotImplementedError("explain_medical_report will be implemented in Week 2.")
+    import json
+    import re
+
+    import google.generativeai as genai
+
+    from app.core.config import settings
+
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel(VISION_MODEL)
+    lang = "Arabic" if language == "ar" else "English"
+
+    prompt = f"""
+    You are a medical report interpreter. Extract and explain this medical report
+    in plain {lang} that a non-medical person can understand.
+
+    Return ONLY a JSON object with exactly these fields:
+    {{
+      "summary": "2-3 sentence plain language summary of the overall report",
+      "findings": [
+        {{
+          "name": "test or measurement name",
+          "value": "the result value",
+          "unit": "unit of measurement or empty string",
+          "normal_range": "the normal reference range or empty string",
+          "status": "normal | low | high | abnormal"
+        }}
+      ],
+      "abnormal_flags": ["list of finding names that are outside normal range"],
+      "next_steps": ["recommended action 1", "recommended action 2"],
+      "disclaimer": "This explanation is for informational purposes only and does not constitute medical advice. Please consult your doctor to discuss these results."
+    }}
+
+    If the file does not appear to be a medical report, return findings as empty array
+    and note this in the summary. Never fabricate specific test values.
+    Only return the JSON object, no markdown fences.
+    """
+
+    file_part = {"mime_type": mime_type, "data": file_bytes}
+    response = await model.generate_content_async([prompt, file_part])
+    text = response.text.strip()
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
+    return json.loads(text)
 
 
 async def generate_wellness_plan(
