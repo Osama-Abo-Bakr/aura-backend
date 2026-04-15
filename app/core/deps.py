@@ -114,3 +114,26 @@ def make_quota_checker(interaction_type: str):
         await check_quota(interaction_type, current_user)
 
     return _checker
+
+
+async def get_current_user_with_tier(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> tuple[dict[str, Any], str]:
+    """
+    Extends get_current_user by also resolving the user's subscription tier.
+
+    Returns:
+        (jwt_payload, tier_str) where tier_str is "free", "premium", etc.
+        Defaults to "free" if no active subscription row exists.
+    """
+    user_id: str = current_user["sub"]
+    sub_resp = (
+        supabase_admin.table("subscriptions")
+        .select("tier")
+        .eq("user_id", user_id)
+        .eq("status", "active")
+        .maybe_single()
+        .execute()
+    )
+    tier: str = (sub_resp.data or {}).get("tier", "free")
+    return current_user, tier

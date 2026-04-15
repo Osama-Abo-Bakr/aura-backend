@@ -80,18 +80,57 @@ async def analyze_skin(
     notes: str | None = None,
 ) -> dict:
     """
-    Analyze a skin image using Gemini Vision.
+    Analyze a skin image using Gemini Vision (gemini-2.5-flash).
 
     Args:
-        image_bytes: Raw image data (JPEG / PNG / WEBP).
+        image_bytes: Raw image data (JPEG / PNG / WEBP / HEIC).
         mime_type: e.g. 'image/jpeg'.
-        language: Response language.
-        notes: Optional context from the user (e.g. duration, prior treatments).
+        language: 'ar' or 'en' — determines response language.
+        notes: Optional user context (e.g. duration, prior treatments).
 
     Returns:
-        Parsed findings dict matching the SkinAnalysisResponse schema.
+        Parsed findings dict with keys: concern, severity, description,
+        natural_remedies, skincare_routine, see_doctor, doctor_reason, disclaimer.
     """
-    raise NotImplementedError("analyze_skin will be implemented in Week 2.")
+    import json
+    import re
+
+    import google.generativeai as genai
+
+    from app.core.config import settings
+
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel(VISION_MODEL)
+
+    lang = "Arabic" if language == "ar" else "English"
+    notes_section = f"\n\nUser notes: {notes}" if notes else ""
+
+    prompt = f"""
+Analyze this skin image carefully. Respond in {lang}.{notes_section}
+
+Return a JSON object with exactly these fields:
+{{
+  "concern": "brief name of identified concern",
+  "severity": "mild | moderate | severe",
+  "description": "plain language explanation (2-3 sentences)",
+  "natural_remedies": ["remedy 1", "remedy 2"],
+  "skincare_routine": ["step 1", "step 2"],
+  "see_doctor": true or false,
+  "doctor_reason": "reason if see_doctor is true, else null",
+  "disclaimer": "This analysis is for informational purposes only and is not a medical diagnosis. Please consult a dermatologist for professional advice."
+}}
+
+If you cannot clearly identify the concern or it appears serious,
+set see_doctor to true. Never guess at serious conditions.
+Only return the JSON object, no markdown fences.
+""".strip()
+
+    image_part = {"mime_type": mime_type, "data": image_bytes}
+    response = await model.generate_content_async([prompt, image_part])
+    text = response.text.strip()
+    # Strip markdown fences if the model adds them despite instructions.
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
+    return json.loads(text)
 
 
 async def explain_medical_report(

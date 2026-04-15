@@ -1,51 +1,64 @@
 """
 Supabase Storage service layer.
 
-Week 1: function signatures and type contracts only.
-Full implementations ship in Week 2.
+Week 2: real implementations of upload URL generation and file download.
 """
 
 from __future__ import annotations
 
+import uuid
 
-async def generate_upload_url(
-    bucket: str,
-    file_path: str,
-    expires_in: int = 300,
-) -> dict[str, str]:
+import httpx
+
+from app.db.supabase import supabase_admin
+
+BUCKET = "analyses"
+
+
+def generate_upload_url(user_id: str, file_name: str, content_type: str) -> dict:
     """
-    Generate a short-lived signed URL that the client can use to PUT a file
-    directly into Supabase Storage without routing through the backend.
+    Generate a signed Supabase Storage upload URL (30-minute expiry).
 
     Args:
-        bucket: Storage bucket name (e.g. 'skin-images', 'medical-reports').
-        file_path: Destination path inside the bucket, including file name.
-        expires_in: URL validity in seconds (default 5 minutes).
+        user_id: The authenticated user's UUID (used as path prefix).
+        file_name: Original file name provided by the client.
+        content_type: MIME type of the file (e.g. 'image/jpeg').
 
     Returns:
         {
             "upload_url": "<signed PUT URL>",
-            "file_path": "<bucket/file_path>",
-            "expires_in": <seconds>
+            "file_path": "<user_id>/<uuid>_<file_name>",
         }
     """
-    raise NotImplementedError("generate_upload_url will be implemented in Week 2.")
+    safe_name = f"{uuid.uuid4()}_{file_name}"
+    path = f"{user_id}/{safe_name}"
+    response = supabase_admin.storage.from_(BUCKET).create_signed_upload_url(path)
+    # supabase-py may return either {"signedURL": ...} or {"signed_url": ...}
+    # depending on the client version — handle both shapes.
+    upload_url = response.get("signedURL") or response.get("signed_url") or response.get("url", "")
+    return {
+        "upload_url": upload_url,
+        "file_path": path,
+    }
 
 
-async def download_file(
-    bucket: str,
-    file_path: str,
-) -> bytes:
+async def download_file(file_path: str) -> tuple[bytes, str]:
     """
-    Download a file from Supabase Storage and return its raw bytes.
-
-    Intended for server-side access (e.g. before passing an image to Gemini Vision).
+    Download a file from Supabase Storage using a short-lived signed URL.
 
     Args:
-        bucket: Storage bucket name.
-        file_path: Path of the file inside the bucket.
+        file_path: Path of the file inside the bucket (no bucket prefix).
 
     Returns:
-        Raw file bytes.
+        Tuple of (raw_bytes, content_type).
     """
-    raise NotImplementedError("download_file will be implemented in Week 2.")
+    signed = supabase_admin.storage.from_(BUCKET).create_signed_url(
+        file_path, expires_in=300
+    )
+    # Handle both dict shapes from different supabase-py releases.
+    url = signed.get("signedURL") or signed.get("signed_url") or signed.get("url", "")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        content_type = resp.headers.get("content-type", "image/jpeg")
+        return resp.content, content_type
