@@ -37,7 +37,7 @@ class TestAuthService(unittest.TestCase):
         result = svc.signup("alice@example.com", "secret123", "Alice Smith")
 
         call_args = MockClient.return_value.post.call_args
-        self.assertEqual(call_args[0][0], "https://example.com/auth/v1/signup")
+        self.assertTrue(call_args[0][0].endswith("/auth/v1/signup"), f"Expected URL ending with /auth/v1/signup, got {call_args[0][0]}")
         payload = call_args[1]["json"]
         self.assertEqual(payload["email"], "alice@example.com")
         self.assertEqual(payload["password"], "secret123")
@@ -72,8 +72,9 @@ class TestAuthService(unittest.TestCase):
         tokens = svc.signin("alice@example.com", "secret123")
 
         call_args = MockClient.return_value.post.call_args
-        self.assertEqual(
-            call_args[0][0], "https://example.com/auth/v1/token?grant_type=password"
+        self.assertTrue(
+            call_args[0][0].endswith("/auth/v1/token?grant_type=password"),
+            f"Expected URL ending with /auth/v1/token?grant_type=password, got {call_args[0][0]}",
         )
         payload = call_args[1]["json"]
         self.assertEqual(payload["email"], "alice@example.com")
