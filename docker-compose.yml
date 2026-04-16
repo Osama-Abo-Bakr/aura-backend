@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # -------------------------------------------------------------------------
   # FastAPI application
@@ -27,6 +25,12 @@ services:
         "--port", "8000",
         "--reload",
       ]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       redis:
         condition: service_healthy
@@ -45,4 +49,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Streamlit — Test dashboard for all API endpoints
+  # -------------------------------------------------------------------------
+  streamlit:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    container_name: aura_streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
