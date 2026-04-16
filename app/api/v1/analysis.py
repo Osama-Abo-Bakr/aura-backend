@@ -17,7 +17,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from app.core.deps import get_current_user, get_current_user_with_tier, make_quota_checker
+from app.core.deps import get_current_user, make_quota_checker
 from app.db.supabase import supabase_admin
 from app.services.storage import generate_upload_url
 

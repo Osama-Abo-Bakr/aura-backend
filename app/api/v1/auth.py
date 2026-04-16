@@ -12,7 +12,6 @@ from app.models.user import (
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
-    SubscriptionResponse,
     TokenRequest,
     TokenResponse,
 )

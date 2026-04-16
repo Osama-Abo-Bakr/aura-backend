@@ -109,8 +109,6 @@ async def ready(request: Request) -> dict:
 
     Returns 503 if any dependency is unhealthy.
     """
-    from fastapi import status as http_status
-
     checks: dict[str, str] = {}
 
     # --- Supabase DB ---
