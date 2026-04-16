@@ -1,7 +1,7 @@
 """Tests for auth API endpoints (register, token, refresh, signout)."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.core.deps import get_current_user
 from app.services.auth import (
-    AuthService,
     AuthTokens,
     DuplicateEmailError,
     InvalidCredentialsError,
