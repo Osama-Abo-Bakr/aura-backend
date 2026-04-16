@@ -59,7 +59,6 @@ def configure_logging(environment: str = "development") -> None:
         logging.DEBUG if environment == "development" else logging.INFO
     )
 
-    # Silence noisy third-party loggers in production
-    if environment == "production":
-        for name in ("httpx", "httpcore", "uvicorn.access"):
-            logging.getLogger(name).setLevel(logging.WARNING)
+    # Silence noisy third-party loggers (always, not just production)
+    for name in ("httpx", "httpcore", "hpack", "uvicorn.access"):
+        logging.getLogger(name).setLevel(logging.WARNING)
