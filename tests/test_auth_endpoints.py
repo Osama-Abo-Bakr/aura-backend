@@ -37,7 +37,7 @@ def client():
 @patch("app.api.v1.auth.AuthService")
 def test_register_success(MockAuthService, client):
     svc = MockAuthService.return_value
-    svc.signup.return_value = {"id": "user-123", "email": "alice@example.com", "user_metadata": {"full_name": "Alice"}}
+    svc.signup.return_value = {"id": "00000000-0000-0000-0000-000000000001", "email": "alice@example.com", "user_metadata": {"full_name": "Alice"}}
     resp = client.post("/api/v1/auth/register", json={
         "email": "alice@example.com",
         "password": "securepassword",
