@@ -157,7 +157,7 @@ async def _handle_subscription_updated(subscription: dict) -> None:
         .maybe_single()
         .execute()
     )
-    if not resp.data:
+    if not resp or not resp.data:
         logger.warning("subscription.updated: no row for %s", stripe_subscription_id)
         return
 

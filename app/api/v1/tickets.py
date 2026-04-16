@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from postgrest.exceptions import APIError
 
 from app.core.deps import get_current_user
 from app.db.supabase import supabase_admin
@@ -19,6 +20,22 @@ VALID_TRANSITIONS: dict[str, set[str]] = {
     "resolved": {"closed"},
     "closed": set(),  # terminal state
 }
+
+
+def _handle_supabase_error(exc: APIError) -> None:
+    """Convert PostgREST APIError to a user-friendly HTTPException."""
+    if exc.code == "PGRST205":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "table_not_available",
+                "message": "The tickets table has not been created yet. Please run the database migration first.",
+            },
+        )
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail={"error": "database_error", "message": str(exc.message)},
+    )
 
 
 @router.post(
@@ -37,7 +54,10 @@ async def create_ticket(
     data = body.model_dump()
     data["user_id"] = user_id
 
-    resp = supabase_admin.table("tickets").insert(data).execute()
+    try:
+        resp = supabase_admin.table("tickets").insert(data).execute()
+    except APIError as exc:
+        _handle_supabase_error(exc)
 
     if not resp.data:
         raise HTTPException(
@@ -60,13 +80,16 @@ async def list_tickets(
     """Return all tickets belonging to the authenticated user, newest first."""
     user_id: str = current_user["sub"]
 
-    resp = (
-        supabase_admin.table("tickets")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
+    try:
+        resp = (
+            supabase_admin.table("tickets")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+    except APIError as exc:
+        _handle_supabase_error(exc)
 
     return [TicketResponse(**row) for row in (resp.data or [])]
 
@@ -84,16 +107,19 @@ async def get_ticket(
     """Return a single ticket by ID (must belong to the authenticated user)."""
     user_id: str = current_user["sub"]
 
-    resp = (
-        supabase_admin.table("tickets")
-        .select("*")
-        .eq("id", str(ticket_id))
-        .eq("user_id", user_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        resp = (
+            supabase_admin.table("tickets")
+            .select("*")
+            .eq("id", str(ticket_id))
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except APIError as exc:
+        _handle_supabase_error(exc)
 
-    if not resp.data:
+    if not resp or not resp.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found.",
@@ -122,16 +148,19 @@ async def update_ticket_status(
     user_id: str = current_user["sub"]
 
     # Fetch current ticket
-    resp = (
-        supabase_admin.table("tickets")
-        .select("*")
-        .eq("id", str(ticket_id))
-        .eq("user_id", user_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        resp = (
+            supabase_admin.table("tickets")
+            .select("*")
+            .eq("id", str(ticket_id))
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except APIError as exc:
+        _handle_supabase_error(exc)
 
-    if not resp.data:
+    if not resp or not resp.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found.",
@@ -157,13 +186,16 @@ async def update_ticket_status(
         )
 
     # Update status
-    update_resp = (
-        supabase_admin.table("tickets")
-        .update({"status": new_status})
-        .eq("id", str(ticket_id))
-        .eq("user_id", user_id)
-        .execute()
-    )
+    try:
+        update_resp = (
+            supabase_admin.table("tickets")
+            .update({"status": new_status})
+            .eq("id", str(ticket_id))
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except APIError as exc:
+        _handle_supabase_error(exc)
 
     if not update_resp.data:
         raise HTTPException(

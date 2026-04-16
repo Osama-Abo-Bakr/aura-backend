@@ -64,7 +64,7 @@ async def check_quota(
         .maybe_single()
         .execute()
     )
-    tier: str = (sub_resp.data or {}).get("tier", "free")
+    tier: str = ((sub_resp.data if sub_resp else None) or {}).get("tier", "free")
 
     limits = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
     limit = limits.get(interaction_type)
@@ -135,5 +135,5 @@ async def get_current_user_with_tier(
         .maybe_single()
         .execute()
     )
-    tier: str = (sub_resp.data or {}).get("tier", "free")
+    tier: str = ((sub_resp.data if sub_resp else None) or {}).get("tier", "free")
     return current_user, tier

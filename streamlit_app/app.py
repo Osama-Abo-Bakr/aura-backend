@@ -1,15 +1,14 @@
 """
 Aura Health API — Streamlit Test Dashboard
 
-A local testing UI for all Aura backend endpoints.
+A polished local testing UI for all Aura backend endpoints.
 Configure API_URL via environment variable (defaults to http://localhost:8000).
 """
 
 from __future__ import annotations
 
-import json
 import os
-from datetime import date, datetime
+from datetime import date
 
 import httpx
 import pandas as pd
@@ -19,6 +18,212 @@ import streamlit as st
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
 API_PREFIX = f"{API_URL}/api/v1"
 
+# ---------------------------------------------------------------------------
+# Design System
+# ---------------------------------------------------------------------------
+
+CHART_COLORS = {
+    "mood": "#C4727F",
+    "mood_fill": "rgba(196,114,127,0.15)",
+    "energy": "#D4A574",
+    "energy_fill": "rgba(212,165,116,0.15)",
+    "sleep": "#5E4F6E",
+    "sleep_fill": "rgba(94,79,110,0.15)",
+    "symptom": "#D4645C",
+    "symptom_fill": "rgba(212,100,92,0.15)",
+}
+
+NAV_ITEMS = [
+    ("\U0001f512", "Auth"),
+    ("\U0001f464", "Profile & Me"),
+    ("\U0001f4ac", "Chat"),
+    ("\U0001f52c", "Analysis"),
+    ("\U0001f4c8", "Health Log"),
+    ("\U0001f4b3", "Subscriptions"),
+    ("\U0001f3ab", "Tickets"),
+    ("\U0001f338", "Wellness"),
+]
+
+CUSTOM_CSS = """
+:root {
+    --aura-rose: #C4727F;
+    --aura-rose-light: #E8A4AB;
+    --aura-rose-dark: #A35763;
+    --aura-peach: #F9E8E4;
+    --aura-peach-dark: #EFD5CE;
+    --aura-cream: #FFF8F6;
+    --aura-plum: #3D3244;
+    --aura-plum-light: #5E4F6E;
+    --aura-gold: #D4A574;
+    --aura-success: #6AAF7B;
+    --aura-warning: #E2A642;
+    --aura-error: #D4645C;
+    --aura-info: #6A8CAF;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 3px rgba(61,50,68,0.08);
+    --shadow-md: 0 4px 12px rgba(61,50,68,0.1);
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #3D3244 0%, #5E4F6E 100%) !important;
+}
+section[data-testid="stSidebar"] * {
+    color: #FFF8F6 !important;
+}
+section[data-testid="stSidebar"] .stDivider {
+    border-color: rgba(255,248,246,0.15) !important;
+}
+section[data-testid="stSidebar"] label[data-testid="stBaseButton-header"] {
+    background: rgba(255,248,246,0.1) !important;
+    border-color: rgba(255,248,246,0.2) !important;
+}
+section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+    color: #FFF8F6 !important;
+    border-color: rgba(255,248,246,0.3) !important;
+}
+section[data-testid="stSidebar"] .stSuccess, section[data-testid="stSidebar"] .stInfo {
+    background: rgba(255,248,246,0.08) !important;
+    color: #FFF8F6 !important;
+    border: none !important;
+}
+/* Sidebar radio items */
+section[data-testid="stSidebar"] .stRadio > div {
+    gap: 4px;
+}
+section[data-testid="stSidebar"] .stRadio label {
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+}
+section[data-testid="stSidebar"] .stRadio label:hover {
+    background: rgba(255,248,246,0.1);
+}
+
+/* Aura cards */
+.aura-card {
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid var(--aura-peach-dark);
+}
+.aura-card-dark {
+    background: var(--aura-plum);
+    color: var(--aura-cream);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+/* Status badges */
+.aura-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.badge-success { background: #e6f4ea; color: #1e7e34; }
+.badge-error   { background: #fde8e8; color: #c0392b; }
+.badge-warning { background: #fef5e7; color: #b7791f; }
+.badge-info    { background: #e8f0fe; color: #2c5282; }
+.badge-rose    { background: var(--aura-peach); color: var(--aura-rose-dark); }
+.badge-gold    { background: #fef5e7; color: #975a16; }
+.badge-plum    { background: #ede8f0; color: var(--aura-plum); }
+.badge-open    { background: #e8f0fe; color: #2c5282; }
+.badge-in-progress { background: #fef5e7; color: #b7791f; }
+.badge-resolved { background: #e6f4ea; color: #1e7e34; }
+.badge-closed  { background: #f0f0f0; color: #666; }
+.badge-free    { background: #f0f0f0; color: #666; }
+.badge-premium { background: linear-gradient(135deg,#f6e6b6,#d4a574); color: #5e3a1a; }
+.badge-pending   { background: #fef5e7; color: #b7791f; }
+.badge-processing { background: #e8f0fe; color: #2c5282; }
+.badge-completed { background: #e6f4ea; color: #1e7e34; }
+.badge-failed    { background: #fde8e8; color: #c0392b; }
+
+/* Chat bubbles */
+.aura-chat-user {
+    background: var(--aura-rose);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 16px 16px 4px 16px;
+    max-width: 75%;
+    margin-left: auto;
+    margin-bottom: 8px;
+}
+.aura-chat-assistant {
+    background: var(--aura-peach);
+    color: var(--aura-plum);
+    padding: 10px 16px;
+    border-radius: 16px 16px 16px 4px;
+    max-width: 75%;
+    margin-right: auto;
+    margin-bottom: 8px;
+}
+
+/* Metric cards */
+.aura-metric {
+    text-align: center;
+    padding: 16px;
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--aura-peach-dark);
+}
+.aura-metric .metric-icon { font-size: 1.5rem; }
+.aura-metric .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--aura-plum); }
+.aura-metric .metric-label { font-size: 0.85rem; color: var(--aura-plum-light); }
+
+/* Ticket state machine flow */
+.state-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+}
+.state-box {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.state-arrow { color: var(--aura-plum-light); font-size: 1.1rem; }
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    padding: 8px 16px;
+}
+.stTabs [aria-selected="true"] {
+    border-bottom: 2px solid var(--aura-rose) !important;
+    color: var(--aura-rose-dark) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--aura-rose-light); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Spinner override */
+.stSpinner > div { border-color: var(--aura-rose) transparent transparent transparent !important; }
+"""
+
+
+def _inject_css() -> None:
+    st.markdown(f"<style>{CUSTOM_CSS}</style>", unsafe_allow_html=True)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -26,43 +231,147 @@ API_PREFIX = f"{API_URL}/api/v1"
 
 
 def _headers() -> dict[str, str]:
-    """Return auth headers if logged in, else empty dict."""
     token = st.session_state.get("access_token")
-    if token:
-        return {"Authorization": f"Bearer {token}"}
-    return {}
+    return {"Authorization": f"Bearer {token}"} if token else {}
 
 
 def _api_call(method: str, path: str, *, json_data=None, params=None) -> httpx.Response:
-    """Make an API call and return the response."""
     url = f"{API_PREFIX}{path}"
-    resp = httpx.request(method, url, json=json_data, params=params, headers=_headers(), timeout=30)
-    return resp
+    return httpx.request(method, url, json=json_data, params=params, headers=_headers(), timeout=30)
+
+
+def _status_badge_html(code: int) -> str:
+    if 200 <= code < 300:
+        cls = "badge-success"
+    elif 400 <= code < 500:
+        cls = "badge-warning"
+    else:
+        cls = "badge-error"
+    return f'<span class="aura-badge {cls}">{code}</span>'
+
+
+def _badge_html(text: str, cls: str = "badge-info") -> str:
+    return f'<span class="aura-badge {cls}">{text}</span>'
+
+
+def _ticket_status_badge(status: str) -> str:
+    return _badge_html(status, f"badge-{status.replace(' ', '-')}")
+
+
+def _tier_badge(tier: str) -> str:
+    return _badge_html(tier.upper(), "badge-premium" if tier == "premium" else "badge-free")
+
+
+def _analysis_status_badge(status: str) -> str:
+    return _badge_html(status, f"badge-{status}")
+
+
+def _display_response_rich(resp: httpx.Response, *, title: str = "Response") -> None:
+    """Display an API response with status badge, rich content, and expandable raw JSON."""
+    st.markdown(_status_badge_html(resp.status_code), unsafe_allow_html=True)
+
+    if 200 <= resp.status_code < 300:
+        try:
+            data = resp.json()
+        except Exception:
+            st.code(resp.text)
+            return
+
+        if isinstance(data, list) and data:
+            df = pd.DataFrame(data)
+            # Truncate long string columns for readability
+            for col in df.columns:
+                if df[col].dtype == object:
+                    df[col] = df[col].astype(str).str.slice(0, 60)
+            st.dataframe(df, hide_index=True, use_container_width=True)
+            with st.expander("Raw JSON"):
+                st.json(resp.json())
+        elif isinstance(data, dict):
+            # Show key-value pairs in a card
+            pairs = []
+            skip = {"user_id", "id"}
+            for k, v in data.items():
+                if k in skip:
+                    continue
+                if isinstance(v, list) and v and isinstance(v[0], str):
+                    pairs.append((k, " ".join(_badge_html(item, "badge-rose") for item in v)))
+                elif isinstance(v, dict):
+                    continue  # skip nested dicts from display
+                else:
+                    pairs.append((k, str(v)))
+
+            if pairs:
+                cols = st.columns(min(len(pairs), 3))
+                for i, (k, v) in enumerate(pairs):
+                    with cols[i % len(cols)]:
+                        st.markdown(
+                            f'<div class="aura-metric"><div class="metric-value">{v}</div>'
+                            f'<div class="metric-label">{k}</div></div>',
+                            unsafe_allow_html=True,
+                        )
+
+            with st.expander("Raw JSON"):
+                st.json(resp.json())
+    elif resp.status_code == 422:
+        st.error("Validation Error")
+        try:
+            data = resp.json()
+            if "errors" in data:
+                for err in data["errors"]:
+                    st.warning(f"`{err.get('field', '?')}`: {err.get('message', '?')}")
+            else:
+                st.json(data)
+        except Exception:
+            st.code(resp.text)
+    else:
+        try:
+            data = resp.json()
+            detail = data.get("detail", {})
+            if isinstance(detail, dict):
+                msg = detail.get("message", detail.get("error", ""))
+                if msg:
+                    st.error(msg)
+                if detail.get("allowed_transitions"):
+                    st.caption(f"Allowed: {', '.join(detail['allowed_transitions'])}")
+            elif isinstance(detail, str):
+                st.error(detail)
+            with st.expander("Raw JSON"):
+                st.json(data)
+        except Exception:
+            st.code(resp.text)
 
 
 def _display_response(resp: httpx.Response) -> None:
-    """Display an API response in a friendly format."""
-    if 200 <= resp.status_code < 300:
-        st.success(f"**{resp.status_code}** — OK")
-    elif resp.status_code == 422:
-        st.error(f"**{resp.status_code}** — Validation Error")
-        data = resp.json()
-        if "errors" in data:
-            for err in data["errors"]:
-                st.warning(f"`{err.get('field', '?')}`: {err.get('message', '?')}")
-        else:
-            st.json(data)
-        return
-    else:
-        st.error(f"**{resp.status_code}**")
-    try:
-        st.json(resp.json())
-    except Exception:
-        st.code(resp.text)
+    """Backward-compatible wrapper."""
+    _display_response_rich(resp)
+
+
+def _metric_card(icon: str, value: str, label: str) -> None:
+    st.markdown(
+        f'<div class="aura-metric"><div class="metric-icon">{icon}</div>'
+        f'<div class="metric-value">{value}</div>'
+        f'<div class="metric-label">{label}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _brand_chart_layout(title: str, y_range: list | None = None) -> go.Layout:
+    layout = go.Layout(
+        title=dict(text=title, font=dict(size=16, color="#3D3244")),
+        paper_bgcolor="#FFF8F6",
+        plot_bgcolor="#FFF8F6",
+        font=dict(family="sans-serif", color="#3D3244"),
+        margin=dict(l=50, r=20, t=50, b=40),
+        xaxis=dict(gridcolor="#EFD5CE"),
+        yaxis=dict(gridcolor="#EFD5CE"),
+        hoverlabel=dict(bgcolor="#3D3244", font=dict(color="white")),
+    )
+    if y_range:
+        layout.yaxis.range = y_range
+    return layout
 
 
 def _ensure_auth() -> bool:
-    """Check if user is authenticated. Show warning if not."""
     if not st.session_state.get("access_token"):
         st.warning("Please log in first (see Auth page).")
         return False
@@ -70,49 +379,50 @@ def _ensure_auth() -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — Auth Status & Navigation
+# Sidebar
 # ---------------------------------------------------------------------------
 
 
 def _render_sidebar() -> None:
-    """Render sidebar with auth status and page navigation."""
     with st.sidebar:
-        st.title("Aura Health")
-        st.caption("Backend Test Dashboard")
-
+        st.markdown(
+            '<div style="text-align:center;padding:8px 0">'
+            '<span style="font-size:2rem">\U0001f338</span><br>'
+            '<span style="font-size:1.4rem;font-weight:700;color:#FFF8F6">Aura Health</span><br>'
+            '<span style="font-size:0.8rem;opacity:0.7">Test Dashboard</span></div>',
+            unsafe_allow_html=True,
+        )
         st.divider()
 
         # Auth status
         if st.session_state.get("access_token"):
-            st.success(f"Logged in as: {st.session_state.get('user_email', 'unknown')}")
-            if st.button("Sign Out"):
+            email = st.session_state.get("user_email", "unknown")
+            st.markdown(
+                f'<span style="color:#6AAF7B">\u25cf</span> <b>{email}</b>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Sign Out", use_container_width=True):
                 _do_signout()
         else:
-            st.info("Not logged in")
+            st.markdown('<span style="color:#999">\u25cb</span> Not authenticated', unsafe_allow_html=True)
 
         st.divider()
 
-        # Navigation
-        page = st.radio(
-            "Navigate",
-            ["Auth", "Profile & Me", "Chat", "Analysis", "Health Log", "Subscriptions", "Tickets", "Wellness"],
-            label_visibility="collapsed",
-        )
-        st.session_state["page"] = page
+        # Navigation with icons
+        labels = [f"{icon} {name}" for icon, name in NAV_ITEMS]
+        page = st.radio("Navigate", labels, label_visibility="collapsed")
+        # Strip icon prefix to get the key
+        st.session_state["page"] = page.split(" ", 1)[1] if " " in page else page
 
         st.divider()
-        st.caption(f"API: `{API_URL}`")
+        st.caption(f"\U0001f310 API: `{API_URL}`")
 
 
 def _do_signout() -> None:
-    """Call signout endpoint and clear session state."""
-    resp = _api_call("POST", "/auth/signout")
+    _api_call("POST", "/auth/signout")
     for key in ["access_token", "refresh_token", "user_email"]:
         st.session_state.pop(key, None)
-    if 200 <= resp.status_code < 300:
-        st.sidebar.success("Signed out!")
-    else:
-        st.sidebar.warning(f"Signout returned {resp.status_code}, session cleared locally.")
+    st.sidebar.success("Signed out!")
 
 
 # ---------------------------------------------------------------------------
@@ -121,62 +431,87 @@ def _do_signout() -> None:
 
 
 def _render_auth() -> None:
-    """Render Auth page with Register, Login, Refresh, Signout."""
-    st.header("Authentication")
+    st.header("\U0001f512 Authentication")
 
     tab_reg, tab_login, tab_refresh = st.tabs(["Register", "Login", "Refresh Token"])
 
-    # ---- Register ----
     with tab_reg:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Register New User")
         with st.form("register_form"):
-            reg_email = st.text_input("Email", key="reg_email")
-            reg_password = st.text_input("Password", type="password", key="reg_password")
-            reg_name = st.text_input("Full Name", key="reg_name")
-            reg_submitted = st.form_submit_button("Register")
+            reg_email = st.text_input("\U0001f4e7 Email", key="reg_email")
+            reg_password = st.text_input("\U0001f510 Password", type="password", key="reg_password",
+                                          help="Minimum 8 characters")
+            reg_name = st.text_input("\U0001f464 Full Name", key="reg_name")
+            reg_submitted = st.form_submit_button("\u2795 Register")
 
         if reg_submitted:
             if not reg_email or not reg_password or not reg_name:
                 st.warning("All fields are required.")
             else:
                 resp = _api_call("POST", "/auth/register", json_data={
-                    "email": reg_email,
-                    "password": reg_password,
-                    "full_name": reg_name,
+                    "email": reg_email, "password": reg_password, "full_name": reg_name,
                 })
-                _display_response(resp)
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    st.success("Account created!")
+                    col1, col2 = st.columns(2)
+                    col1.markdown(f'<div class="aura-metric"><div class="metric-value">{data.get("email","")}</div>'
+                                  f'<div class="metric-label">Email</div></div>', unsafe_allow_html=True)
+                    col2.markdown(f'<div class="aura-metric"><div class="metric-value">{str(data.get("user_id",""))[:8]}...</div>'
+                                  f'<div class="metric-label">User ID</div></div>', unsafe_allow_html=True)
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---- Login ----
     with tab_login:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Sign In")
         with st.form("login_form"):
-            login_email = st.text_input("Email", key="login_email")
-            login_password = st.text_input("Password", type="password", key="login_password")
-            login_submitted = st.form_submit_button("Sign In")
+            login_email = st.text_input("\U0001f4e7 Email", key="login_email")
+            login_password = st.text_input("\U0001f510 Password", type="password", key="login_password")
+            login_submitted = st.form_submit_button("\U0001f511 Sign In")
 
         if login_submitted:
             if not login_email or not login_password:
                 st.warning("Email and password are required.")
             else:
                 resp = _api_call("POST", "/auth/token", json_data={
-                    "email": login_email,
-                    "password": login_password,
+                    "email": login_email, "password": login_password,
                 })
-                if 200 <= resp.status_code < 300:
+                if resp.status_code == 400:
+                    try:
+                        detail = resp.json().get("detail", "")
+                        if "email_not_confirmed" in str(detail):
+                            st.error("\u26a0 Email not confirmed yet. Check your inbox or disable 'Confirm email' "
+                                     "in Supabase Dashboard > Authentication > Providers.")
+                        else:
+                            _display_response_rich(resp)
+                    except Exception:
+                        _display_response_rich(resp)
+                elif 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.session_state["access_token"] = data["access_token"]
                     st.session_state["refresh_token"] = data["refresh_token"]
                     st.session_state["user_email"] = login_email
-                    st.success("Logged in successfully!")
-                    st.json(data)
+                    st.success(f"\u2705 Logged in as {login_email}")
+                    st.markdown(_badge_html("Session Active", "badge-success"), unsafe_allow_html=True)
+                    with st.expander("Token Details"):
+                        st.text_input("Access Token", value=data["access_token"], disabled=True, key="login_access_token")
+                        st.text_input("Refresh Token", value=data["refresh_token"], disabled=True, key="login_refresh_token")
                 else:
-                    _display_response(resp)
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---- Refresh ----
     with tab_refresh:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Refresh Token")
-        refresh_token = st.text_input("Refresh Token", value=st.session_state.get("refresh_token", ""), key="refresh_input")
-        if st.button("Refresh"):
+        refresh_token = st.text_input("Refresh Token",
+                                      value=st.session_state.get("refresh_token", ""),
+                                      key="refresh_input")
+        if st.button("\U0001f504 Refresh", use_container_width=True):
             if not refresh_token:
                 st.warning("No refresh token available.")
             else:
@@ -185,17 +520,20 @@ def _render_auth() -> None:
                     data = resp.json()
                     st.session_state["access_token"] = data["access_token"]
                     st.session_state["refresh_token"] = data["refresh_token"]
-                    st.success("Token refreshed!")
-                    st.json(data)
+                    st.success("\u2705 Token refreshed!")
+                    with st.expander("New Tokens"):
+                        st.json(data)
                 else:
-                    _display_response(resp)
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---- Current tokens ----
     st.divider()
     st.subheader("Session Info")
     if st.session_state.get("access_token"):
-        st.text_input("Access Token", value=st.session_state["access_token"], disabled=True)
-        st.text_input("Refresh Token", value=st.session_state.get("refresh_token", ""), disabled=True)
+        st.markdown(_badge_html("Connected", "badge-success"), unsafe_allow_html=True)
+        with st.expander("View Tokens"):
+            st.text_input("Access Token", value=st.session_state["access_token"], disabled=True, key="session_access_token")
+            st.text_input("Refresh Token", value=st.session_state.get("refresh_token", ""), disabled=True, key="session_refresh_token")
     else:
         st.info("No active session. Log in above.")
 
@@ -206,28 +544,68 @@ def _render_auth() -> None:
 
 
 def _render_profile() -> None:
-    """Render Profile & Me page."""
-    st.header("Profile & Me")
+    st.header("\U0001f464 Profile & Me")
     if not _ensure_auth():
         return
 
     tab_me, tab_upsert = st.tabs(["Get Me", "Upsert Profile"])
 
     with tab_me:
-        if st.button("Fetch /me"):
+        if st.button("\U0001f50d Fetch /me", use_container_width=True):
             resp = _api_call("GET", "/me")
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                profile = data.get("profile") or {}
+                subscription = data.get("subscription", {})
+
+                st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+                st.subheader("\U0001f464 Profile")
+                col1, col2, col3 = st.columns(3)
+                col1.markdown(
+                    f'<div class="aura-metric"><div class="metric-value">{profile.get("full_name","N/A")}</div>'
+                    f'<div class="metric-label">Name</div></div>', unsafe_allow_html=True)
+                col2.markdown(
+                    f'<div class="aura-metric"><div class="metric-value">{profile.get("language","N/A")}</div>'
+                    f'<div class="metric-label">Language</div></div>', unsafe_allow_html=True)
+                col3.markdown(
+                    f'<div class="aura-metric"><div class="metric-value">{profile.get("country","N/A")}</div>'
+                    f'<div class="metric-label">Country</div></div>', unsafe_allow_html=True)
+
+                goals = profile.get("health_goals", [])
+                conditions = profile.get("conditions", [])
+                if goals:
+                    st.markdown("**Health Goals:** " + " ".join(_badge_html(g, "badge-rose") for g in goals),
+                                unsafe_allow_html=True)
+                if conditions:
+                    st.markdown("**Conditions:** " + " ".join(_badge_html(c, "badge-warning") for c in conditions),
+                                unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+                st.subheader("\U0001f4b3 Subscription")
+                tier = subscription.get("tier", "free")
+                sub_status = subscription.get("status", "active")
+                col1, col2 = st.columns(2)
+                col1.markdown(_tier_badge(tier), unsafe_allow_html=True)
+                col2.markdown(_badge_html(sub_status.upper(), "badge-success"), unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
 
     with tab_upsert:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Create or Update Profile")
         with st.form("profile_form"):
-            p_name = st.text_input("Full Name")
-            p_lang = st.selectbox("Language", ["ar", "en"])
-            p_country = st.text_input("Country (2-letter code)", max_chars=2)
-            p_dob = st.date_input("Date of Birth", value=None, format="YYYY-MM-DD")
-            p_goals = st.text_input("Health Goals (comma-separated)")
-            p_conditions = st.text_input("Conditions (comma-separated)")
-            p_submitted = st.form_submit_button("Upsert Profile")
+            p_name = st.text_input("\U0001f464 Full Name")
+            p_lang = st.selectbox("\U0001f310 Language", ["ar", "en"])
+            p_country = st.text_input("\U0001f30d Country (2-letter code)", max_chars=2)
+            p_dob = st.date_input("\U0001f382 Date of Birth", value=None, format="YYYY-MM-DD")
+            p_goals = st.text_input("\U0001f3af Health Goals (comma-separated)")
+            p_conditions = st.text_input("\U0001f3e5 Conditions (comma-separated)")
+            p_submitted = st.form_submit_button("\u270f Upsert Profile")
 
         if p_submitted:
             data: dict = {}
@@ -245,7 +623,13 @@ def _render_profile() -> None:
                 data["conditions"] = [c.strip() for c in p_conditions.split(",")]
 
             resp = _api_call("POST", "/auth/profile", json_data=data)
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                st.success("\u2705 Profile saved!")
+                with st.expander("Raw JSON"):
+                    st.json(resp.json())
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -254,18 +638,14 @@ def _render_profile() -> None:
 
 
 def _render_chat() -> None:
-    """Render Chat page with SSE streaming."""
-    st.header("Chat")
+    st.header("\U0001f4ac Chat")
     if not _ensure_auth():
         return
 
     tab_send, tab_convos = st.tabs(["Send Message", "Conversations"])
 
-    # ---- Send Message (SSE) ----
     with tab_send:
-        st.subheader("Send a Message")
-
-        # Load conversations for dropdown
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         convos = []
         try:
             resp = _api_call("GET", "/chat/conversations")
@@ -274,16 +654,17 @@ def _render_chat() -> None:
         except Exception:
             pass
 
-        convo_options = ["New Conversation"] + [
-            f"{c['id']} — {c.get('title', 'Untitled')}" for c in convos
+        convo_options = ["\U0001f195 New Conversation"] + [
+            f"{c.get('title', 'Untitled')}" for c in convos
         ]
         selected_convo = st.selectbox("Conversation", convo_options, index=0)
-        convo_id = None if selected_convo == "New Conversation" else selected_convo.split(" — ")[0]
+        convo_id = None if "New" in selected_convo else convos[convo_options.index(selected_convo) - 1]["id"] \
+            if convos and selected_convo != convo_options[0] else None
 
-        chat_lang = st.selectbox("Language", ["en", "ar"], index=0)
-        chat_msg = st.text_area("Message", height=100)
+        chat_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], index=0)
+        chat_msg = st.text_area("\u270f Message", height=100)
 
-        if st.button("Send"):
+        if st.button("\U0001f4e4 Send", use_container_width=True):
             if not chat_msg.strip():
                 st.warning("Enter a message.")
             else:
@@ -296,7 +677,7 @@ def _render_chat() -> None:
                 headers["Accept"] = "text/event-stream"
 
                 response_text = ""
-                with st.spinner("Streaming response..."):
+                with st.spinner("\U0001f4ac Streaming response..."):
                     with httpx.stream("POST", url, json=payload, headers=headers, timeout=60) as stream:
                         for line in stream.iter_lines():
                             if line.startswith("data: "):
@@ -305,34 +686,54 @@ def _render_chat() -> None:
                                     break
                                 response_text += data
 
-                st.markdown("### Assistant Response")
-                st.write(response_text)
+                # Show as chat bubbles
+                st.markdown(f'<div class="aura-chat-user">{chat_msg}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="aura-chat-assistant">{response_text}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---- Conversations ----
     with tab_convos:
         col1, col2 = st.columns([3, 1])
-        with col1:
-            if st.button("Refresh Conversations"):
+        with col2:
+            if st.button("\U0001f504 Refresh", use_container_width=True):
                 resp = _api_call("GET", "/chat/conversations")
                 if 200 <= resp.status_code < 300:
                     st.session_state["chat_convos"] = resp.json()
-                else:
-                    _display_response(resp)
 
         convos = st.session_state.get("chat_convos", [])
         if convos:
             for c in convos:
-                with st.expander(f"{c.get('title', 'Untitled')} — {c['id'][:8]}"):
-                    st.write(f"Language: {c.get('language', '?')} | Messages: {c.get('message_count', 0)} | Created: {c.get('created_at', '?')}")
+                title = c.get("title", "Untitled")
+                lang = c.get("language", "?")
+                msg_count = c.get("message_count", 0)
+                with st.expander(f"\U0001f4ac {title}"):
+                    st.markdown(
+                        _badge_html(lang.upper(), "badge-info") + " " +
+                        _badge_html(f"{msg_count} msgs", "badge-plum"),
+                        unsafe_allow_html=True,
+                    )
+                    st.caption(f"ID: {c['id'][:8]}... | Created: {c.get('created_at', '?')[:10]}")
 
-                    if st.button("View Messages", key=f"view_{c['id']}"):
-                        resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
-                        _display_response(resp)
-
-                    if st.button("Delete", key=f"del_{c['id']}"):
-                        resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
-                        _display_response(resp)
-                        st.session_state.pop("chat_convos", None)
+                    col_v, col_d = st.columns(2)
+                    with col_v:
+                        if st.button("\U0001f441 View", key=f"view_{c['id']}"):
+                            resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
+                            if 200 <= resp.status_code < 300:
+                                msgs = resp.json()
+                                for m in msgs:
+                                    role = m.get("role", "unknown")
+                                    content = m.get("content", "")
+                                    cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
+                                    st.markdown(f'<div class="{cls}">{content}</div>', unsafe_allow_html=True)
+                            else:
+                                _display_response_rich(resp)
+                    with col_d:
+                        if st.button("\U0001f5d1 Delete", key=f"del_{c['id']}"):
+                            resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
+                            if 200 <= resp.status_code < 300:
+                                st.success("Deleted!")
+                                st.session_state.pop("chat_convos", None)
+                            else:
+                                _display_response_rich(resp)
         else:
             st.info("No conversations yet. Click Refresh to load.")
 
@@ -343,76 +744,176 @@ def _render_chat() -> None:
 
 
 def _render_analysis() -> None:
-    """Render Analysis page."""
-    st.header("Analysis")
+    st.header("\U0001f52c Analysis")
     if not _ensure_auth():
         return
 
-    tab_upload, tab_submit, tab_status, tab_history = st.tabs(
-        ["Upload URL", "Submit Analysis", "Check Status", "History"]
+    tab_upload_url, tab_file_upload, tab_submit, tab_status, tab_history = st.tabs(
+        ["Upload URL", "File Upload", "Submit Analysis", "Check Status", "History"]
     )
 
-    with tab_upload:
+    with tab_upload_url:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Generate Upload URL")
         with st.form("upload_url_form"):
-            file_name = st.text_input("File Name", value="test.jpg")
-            content_type = st.selectbox("Content Type", [
+            file_name = st.text_input("\U0001f4c4 File Name", value="test.jpg")
+            content_type = st.selectbox("\U0001f4f7 Content Type", [
                 "image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"
             ])
-            analysis_type = st.selectbox("Analysis Type", ["skin", "report"])
-            upload_submitted = st.form_submit_button("Get Upload URL")
+            analysis_type = st.selectbox("\U0001f9ea Analysis Type", ["skin", "report"])
+            upload_submitted = st.form_submit_button("\U0001f517 Get Upload URL")
 
         if upload_submitted:
             resp = _api_call("POST", "/analysis/upload-url", json_data={
-                "file_name": file_name,
-                "content_type": content_type,
-                "analysis_type": analysis_type,
+                "file_name": file_name, "content_type": content_type, "analysis_type": analysis_type,
             })
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                st.success("Upload URL generated!")
+                st.code(data.get("upload_url", ""), language="http")
+                st.markdown(f'**File Path:** `{data.get("file_path", "")}`')
+                st.caption("Copy the file path above to submit analysis, or use the File Upload tab.")
+                st.session_state["analysis_file_path"] = data.get("file_path", "")
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_file_upload:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("\U0001f4e4 Upload a File for Analysis")
+        uploaded_file = st.file_uploader(
+            "Choose an image or PDF",
+            type=["jpg", "jpeg", "png", "webp", "heic", "pdf"],
+            help="Select a file to upload. It will be sent to Supabase Storage automatically.",
+        )
+        if uploaded_file is not None:
+            # Show preview
+            if uploaded_file.type and uploaded_file.type.startswith("image/"):
+                st.image(uploaded_file, caption=uploaded_file.name, use_column_width=True)
+            else:
+                st.info(f"\U0001f4c4 {uploaded_file.name} ({uploaded_file.size:,} bytes)")
+
+            analysis_type_upload = st.selectbox("\U0001f9ea Analysis Type", ["skin", "report"], key="file_upload_type")
+            content_type_upload = uploaded_file.type or "image/jpeg"
+
+            if st.button("\u26a1 Upload & Prepare", use_container_width=True):
+                # Step 1: Get pre-signed URL
+                with st.spinner("Generating upload URL..."):
+                    resp = _api_call("POST", "/analysis/upload-url", json_data={
+                        "file_name": uploaded_file.name,
+                        "content_type": content_type_upload,
+                        "analysis_type": analysis_type_upload,
+                    })
+
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    upload_url = data["upload_url"]
+                    file_path = data["file_path"]
+
+                    # Step 2: Upload file to pre-signed URL
+                    with st.spinner("Uploading file to storage..."):
+                        uploaded_file.seek(0)
+                        file_bytes = uploaded_file.read()
+                        put_resp = httpx.put(upload_url, content=file_bytes,
+                                             headers={"Content-Type": content_type_upload}, timeout=60)
+
+                    if 200 <= put_resp.status_code < 300:
+                        st.session_state["analysis_file_path"] = file_path
+                        st.success("\u2705 File uploaded successfully!")
+                        st.markdown(f'**File Path:** `{file_path}`')
+                        st.caption("Switch to 'Submit Analysis' tab to run the analysis.")
+                    else:
+                        st.error(f"Upload to storage failed: {put_resp.status_code}")
+                        st.code(put_resp.text[:500])
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_submit:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Submit Analysis")
-        analysis_lang = st.selectbox("Language", ["en", "ar"], key="analysis_lang")
-        file_path = st.text_input("File Path (from upload URL response)")
+        analysis_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], key="analysis_lang")
+        file_path = st.text_input(
+            "\U0001f4c2 File Path",
+            value=st.session_state.get("analysis_file_path", ""),
+            help="Auto-populated after file upload. You can also paste manually.",
+        )
 
         col_skin, col_report = st.columns(2)
         with col_skin:
-            if st.button("Skin Analysis"):
+            if st.button("\U0001f9b5 Skin Analysis", use_container_width=True):
                 if not file_path:
                     st.warning("Enter a file path.")
                 else:
                     resp = _api_call("POST", "/analysis/skin", json_data={
                         "file_path": file_path, "language": analysis_lang,
                     })
-                    _display_response(resp)
+                    if 200 <= resp.status_code < 300:
+                        data = resp.json()
+                        st.success("Analysis submitted!")
+                        st.markdown(f'**Analysis ID:** `{data.get("id", "")}`')
+                        st.caption("Use the Check Status tab to poll for results.")
+                        with st.expander("Raw JSON"):
+                            st.json(data)
+                    else:
+                        _display_response_rich(resp)
 
         with col_report:
-            if st.button("Report Analysis"):
+            if st.button("\U0001f4ca Report Analysis", use_container_width=True):
                 if not file_path:
                     st.warning("Enter a file path.")
                 else:
                     resp = _api_call("POST", "/analysis/report", json_data={
                         "file_path": file_path, "language": analysis_lang,
                     })
-                    _display_response(resp)
+                    if 200 <= resp.status_code < 300:
+                        data = resp.json()
+                        st.success("Analysis submitted!")
+                        st.markdown(f'**Analysis ID:** `{data.get("id", "")}`')
+                        with st.expander("Raw JSON"):
+                            st.json(data)
+                    else:
+                        _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_status:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Check Analysis Status")
-        status_id = st.text_input("Analysis ID")
-        if st.button("Check Status"):
+        status_id = st.text_input("\U0001f194 Analysis ID")
+        if st.button("\U0001f50d Check Status", use_container_width=True):
             if not status_id:
                 st.warning("Enter an analysis ID.")
             else:
                 resp = _api_call("GET", f"/analysis/{status_id}/status")
-                _display_response(resp)
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    status_val = data.get("status", "unknown")
+                    st.markdown(_analysis_status_badge(status_val), unsafe_allow_html=True)
+                    if status_val == "completed" and data.get("result"):
+                        st.subheader("Result")
+                        result = data["result"]
+                        if isinstance(result, dict):
+                            for k, v in result.items():
+                                st.markdown(f"**{k}:** {v}")
+                        else:
+                            st.write(result)
+                    elif status_val in ("pending", "processing"):
+                        st.info("Analysis still in progress. Click Check Status again in a moment.")
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_history:
         st.subheader("Analysis History")
-        page_num = st.number_input("Page", min_value=1, value=1, key="hist_page")
+        page_num = st.number_input("\U0001f4c3 Page", min_value=1, value=1, key="hist_page")
         page_limit = st.number_input("Limit", min_value=1, max_value=50, value=10, key="hist_limit")
-        if st.button("Load History"):
+        if st.button("\U0001f4da Load History", use_container_width=True):
             resp = _api_call("GET", "/analysis/history", params={"page": page_num, "limit": page_limit})
-            _display_response(resp)
+            _display_response_rich(resp)
 
 
 # ---------------------------------------------------------------------------
@@ -421,8 +922,7 @@ def _render_analysis() -> None:
 
 
 def _render_health_log() -> None:
-    """Render Health Log page with charts."""
-    st.header("Health Log")
+    st.header("\U0001f4c8 Health Log")
     if not _ensure_auth():
         return
 
@@ -431,17 +931,18 @@ def _render_health_log() -> None:
     )
 
     with tab_upsert:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Create / Update Log Entry")
         with st.form("health_log_form"):
-            hl_date = st.date_input("Date", value=date.today())
-            hl_mood = st.slider("Mood (1-10)", 1, 10, value=5)
-            hl_energy = st.slider("Energy (1-10)", 1, 10, value=5)
-            hl_sleep = st.slider("Sleep Hours (0-24)", 0.0, 24.0, value=7.0, step=0.5)
-            hl_water = st.number_input("Water (ml)", min_value=0, value=0)
-            hl_exercise = st.number_input("Exercise (minutes)", min_value=0, value=0)
-            hl_symptoms = st.text_input("Symptoms (comma-separated)")
-            hl_notes = st.text_area("Notes", height=80)
-            hl_submitted = st.form_submit_button("Save Log")
+            hl_date = st.date_input("\U0001f4c5 Date", value=date.today())
+            hl_mood = st.slider("\U0001f60a Mood (1-10)", 1, 10, value=5)
+            hl_energy = st.slider("\U0001f50b Energy (1-10)", 1, 10, value=5)
+            hl_sleep = st.slider("\U0001f319 Sleep Hours (0-24)", 0.0, 24.0, value=7.0, step=0.5)
+            hl_water = st.number_input("\U0001f4a7 Water (ml)", min_value=0, value=0)
+            hl_exercise = st.number_input("\U0001f3cb Exercise (minutes)", min_value=0, value=0)
+            hl_symptoms = st.text_input("\U0001f3e5 Symptoms (comma-separated)")
+            hl_notes = st.text_area("\U0001f4dd Notes", height=80)
+            hl_submitted = st.form_submit_button("\u2705 Save Log")
 
         if hl_submitted:
             data: dict = {"log_date": str(hl_date), "mood": hl_mood, "energy": hl_energy}
@@ -457,94 +958,125 @@ def _render_health_log() -> None:
                 data["notes"] = hl_notes
 
             resp = _api_call("POST", "/health-log", json_data=data)
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                st.success("\u2705 Log saved!")
+                with st.expander("Raw JSON"):
+                    st.json(resp.json())
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
         st.subheader("Recent Logs")
-        hl_days = st.number_input("Days", min_value=1, max_value=365, value=30, key="hl_days")
-        if st.button("Load Logs"):
+        hl_days = st.number_input("\U0001f4c5 Days", min_value=1, max_value=365, value=30, key="hl_days")
+        if st.button("\U0001f4da Load Logs", use_container_width=True):
             resp = _api_call("GET", "/health-log", params={"days": hl_days})
-            _display_response(resp)
+            _display_response_rich(resp)
 
     with tab_summary:
-        st.subheader("Health Summary & Charts")
-        summary_days = st.slider("Days", min_value=7, max_value=90, value=30, key="summary_days")
-        if st.button("Load Summary"):
+        st.subheader("\U0001f4ca Health Summary & Charts")
+        summary_days = st.slider("\U0001f4c5 Days", min_value=7, max_value=90, value=30, key="summary_days")
+        if st.button("\U0001f504 Load Summary", use_container_width=True):
             resp = _api_call("GET", "/health-log/summary", params={"days": summary_days})
             if 200 <= resp.status_code < 300:
                 data = resp.json()
 
-                st.metric("Days Tracked", data.get("entry_count", 0))
-                st.metric("Total Exercise (min)", data.get("exercise_total_minutes", 0))
-                st.metric("Avg Water (ml)", round(data.get("water_avg_ml", 0)))
+                # Metric cards
+                col1, col2, col3 = st.columns(3)
+                col1.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
+                    f'<div class="metric-value">{data.get("entry_count",0)}</div>'
+                    f'<div class="metric-label">Days Tracked</div></div>', unsafe_allow_html=True)
+                col2.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f3cb</div>'
+                    f'<div class="metric-value">{data.get("exercise_total_minutes",0)}</div>'
+                    f'<div class="metric-label">Total Exercise (min)</div></div>', unsafe_allow_html=True)
+                col3.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4a7</div>'
+                    f'<div class="metric-value">{round(data.get("water_avg_ml",0))}</div>'
+                    f'<div class="metric-label">Avg Water (ml)</div></div>', unsafe_allow_html=True)
 
-                # Mood trend chart
+                # Mood trend
                 mood_trend = data.get("mood_trend", [])
                 if mood_trend:
-                    fig_mood = go.Figure()
-                    fig_mood.add_trace(go.Scatter(
-                        x=[d["date"] for d in mood_trend],
-                        y=[d["value"] for d in mood_trend],
-                        mode="lines+markers",
-                        name="Mood",
-                        line=dict(color="#636efa"),
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=[d["date"] for d in mood_trend], y=[d["value"] for d in mood_trend],
+                        mode="lines+markers", name="Mood",
+                        line=dict(color=CHART_COLORS["mood"], width=2),
+                        fill="tozeroy", fillcolor=CHART_COLORS["mood_fill"],
                     ))
-                    fig_mood.update_layout(title="Mood Trend", yaxis_range=[1, 10])
-                    st.plotly_chart(fig_mood, use_container_width=True)
+                    fig.update_layout(_brand_chart_layout("Mood Trend", [1, 10]))
+                    st.plotly_chart(fig, use_container_width=True)
 
-                # Energy trend chart
+                # Energy trend
                 energy_trend = data.get("energy_trend", [])
                 if energy_trend:
-                    fig_energy = go.Figure()
-                    fig_energy.add_trace(go.Scatter(
-                        x=[d["date"] for d in energy_trend],
-                        y=[d["value"] for d in energy_trend],
-                        mode="lines+markers",
-                        name="Energy",
-                        line=dict(color="#00cc96"),
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=[d["date"] for d in energy_trend], y=[d["value"] for d in energy_trend],
+                        mode="lines+markers", name="Energy",
+                        line=dict(color=CHART_COLORS["energy"], width=2),
+                        fill="tozeroy", fillcolor=CHART_COLORS["energy_fill"],
                     ))
-                    fig_energy.update_layout(title="Energy Trend", yaxis_range=[1, 10])
-                    st.plotly_chart(fig_energy, use_container_width=True)
+                    fig.update_layout(_brand_chart_layout("Energy Trend", [1, 10]))
+                    st.plotly_chart(fig, use_container_width=True)
 
-                # Sleep trend chart
+                # Mood + Energy overlay
+                if mood_trend and energy_trend:
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=[d["date"] for d in mood_trend], y=[d["value"] for d in mood_trend],
+                        mode="lines+markers", name="Mood",
+                        line=dict(color=CHART_COLORS["mood"], width=2),
+                    ))
+                    fig.add_trace(go.Scatter(
+                        x=[d["date"] for d in energy_trend], y=[d["value"] for d in energy_trend],
+                        mode="lines+markers", name="Energy",
+                        line=dict(color=CHART_COLORS["energy"], width=2, dash="dot"),
+                    ))
+                    fig.update_layout(_brand_chart_layout("Mood & Energy", [1, 10]))
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # Sleep trend
                 sleep_trend = data.get("sleep_trend", [])
                 if sleep_trend:
-                    fig_sleep = go.Figure()
-                    fig_sleep.add_trace(go.Bar(
-                        x=[d["date"] for d in sleep_trend],
-                        y=[d["value"] for d in sleep_trend],
-                        name="Sleep Hours",
-                        marker_color="#ab63fa",
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=[d["date"] for d in sleep_trend], y=[d["value"] for d in sleep_trend],
+                        name="Sleep Hours", marker_color=CHART_COLORS["sleep"],
+                        marker_line_width=0,
                     ))
-                    fig_sleep.update_layout(title="Sleep Trend", yaxis_range=[0, 24])
-                    st.plotly_chart(fig_sleep, use_container_width=True)
+                    fig.update_layout(_brand_chart_layout("Sleep Trend", [0, 24]))
+                    st.plotly_chart(fig, use_container_width=True)
 
                 # Symptom frequency
                 symptoms = data.get("symptom_frequency", [])
                 if symptoms:
-                    fig_sym = go.Figure()
-                    fig_sym.add_trace(go.Bar(
-                        x=[s["symptom"] for s in symptoms],
-                        y=[s["count"] for s in symptoms],
-                        marker_color="#ef553b",
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=[s["symptom"] for s in symptoms], y=[s["count"] for s in symptoms],
+                        marker_color=CHART_COLORS["symptom"], marker_line_width=0,
                     ))
-                    fig_sym.update_layout(title="Symptom Frequency")
-                    st.plotly_chart(fig_sym, use_container_width=True)
+                    fig.update_layout(_brand_chart_layout("Symptom Frequency"))
+                    st.plotly_chart(fig, use_container_width=True)
             else:
-                _display_response(resp)
+                _display_response_rich(resp)
 
     with tab_date:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Get / Delete by Date")
-        lookup_date = st.date_input("Date", value=date.today(), key="hl_lookup_date")
+        lookup_date = st.date_input("\U0001f4c5 Date", value=date.today(), key="hl_lookup_date")
         col_get, col_del = st.columns(2)
         with col_get:
-            if st.button("Get Log"):
+            if st.button("\U0001f50d Get Log", use_container_width=True):
                 resp = _api_call("GET", f"/health-log/{lookup_date}")
-                _display_response(resp)
+                _display_response_rich(resp)
         with col_del:
-            if st.button("Delete Log"):
+            if st.button("\U0001f5d1 Delete Log", use_container_width=True):
                 resp = _api_call("DELETE", f"/health-log/{lookup_date}")
-                _display_response(resp)
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -553,25 +1085,49 @@ def _render_health_log() -> None:
 
 
 def _render_subscriptions() -> None:
-    """Render Subscriptions page."""
-    st.header("Subscriptions")
+    st.header("\U0001f4b3 Subscriptions")
     if not _ensure_auth():
         return
 
     tab_status, tab_checkout = st.tabs(["Status", "Checkout"])
 
     with tab_status:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Subscription Status")
-        if st.button("Check Status"):
+        if st.button("\U0001f50d Check Status", use_container_width=True):
             resp = _api_call("GET", "/subscribe/status")
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                tier = data.get("tier", "free")
+                sub_status = data.get("status", "active")
+                col1, col2 = st.columns(2)
+                col1.markdown(_tier_badge(tier), unsafe_allow_html=True)
+                col2.markdown(_badge_html(sub_status.upper(), "badge-success"), unsafe_allow_html=True)
+                if data.get("current_period_end"):
+                    st.caption(f"Period ends: {data['current_period_end'][:10]}")
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_checkout:
-        st.subheader("Start Premium Checkout")
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("\u2728 Upgrade to Premium")
         st.info("This will create a Stripe Checkout session and return a redirect URL.")
-        if st.button("Create Checkout Session"):
+        if st.button("\U0001f680 Start Premium Checkout", use_container_width=True):
             resp = _api_call("POST", "/subscribe/checkout")
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                url = data.get("url", data.get("checkout_url", ""))
+                if url:
+                    st.success("Checkout session created!")
+                    st.markdown(f'[**\U0001f517 Open Checkout Page**]({url})')
+                else:
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -586,10 +1142,16 @@ VALID_TRANSITIONS = {
     "closed": set(),
 }
 
+STATE_COLORS = {
+    "open": "#6A8CAF",
+    "in_progress": "#E2A642",
+    "resolved": "#6AAF7B",
+    "closed": "#999",
+}
+
 
 def _render_tickets() -> None:
-    """Render Tickets page with state machine visualization."""
-    st.header("Tickets")
+    st.header("\U0001f3ab Tickets")
     if not _ensure_auth():
         return
 
@@ -598,69 +1160,113 @@ def _render_tickets() -> None:
     )
 
     with tab_create:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Create Ticket")
         with st.form("ticket_create_form"):
-            t_subject = st.text_input("Subject", max_chars=200)
-            t_desc = st.text_area("Description", height=120, max_chars=5000)
-            t_priority = st.selectbox("Priority", ["low", "medium", "high"])
-            t_submitted = st.form_submit_button("Create Ticket")
+            t_subject = st.text_input("\u270f Subject", max_chars=200)
+            t_desc = st.text_area("\U0001f4dd Description", height=120, max_chars=5000)
+            t_priority = st.selectbox("\U0001f534 Priority", ["low", "medium", "high"])
+            t_submitted = st.form_submit_button("\u2795 Create Ticket")
 
         if t_submitted:
             if not t_subject or not t_desc:
                 st.warning("Subject and description are required.")
             else:
                 resp = _api_call("POST", "/tickets", json_data={
-                    "subject": t_subject,
-                    "description": t_desc,
-                    "priority": t_priority,
+                    "subject": t_subject, "description": t_desc, "priority": t_priority,
                 })
-                _display_response(resp)
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    st.success("\u2705 Ticket created!")
+                    st.markdown(f'**ID:** `{data.get("id","")}`')
+                    st.markdown(_ticket_status_badge(data.get("status", "open")), unsafe_allow_html=True)
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
         st.subheader("My Tickets")
-        if st.button("Load Tickets"):
+        if st.button("\U0001f504 Load Tickets", use_container_width=True):
             resp = _api_call("GET", "/tickets")
-            _display_response(resp)
+            _display_response_rich(resp)
 
     with tab_detail:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Ticket Detail")
-        detail_id = st.text_input("Ticket ID")
-        if st.button("Get Ticket"):
+        detail_id = st.text_input("\U0001f194 Ticket ID")
+        if st.button("\U0001f50d Get Ticket", use_container_width=True):
             if not detail_id:
                 st.warning("Enter a ticket ID.")
             else:
                 resp = _api_call("GET", f"/tickets/{detail_id}")
-                _display_response(resp)
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    st.markdown(f'**{data.get("subject","")}**')
+                    st.markdown(
+                        _ticket_status_badge(data.get("status", "")) + " " +
+                        _badge_html(data.get("priority", ""), "badge-warning"),
+                        unsafe_allow_html=True,
+                    )
+                    st.write(data.get("description", ""))
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_transition:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Transition Ticket Status")
 
-        # State machine diagram
-        st.markdown("**State Machine:**")
+        # Styled state machine diagram
         st.markdown(
-            "```text\n"
-            "open → in_progress → resolved → closed\n"
-            "                  └──→ closed\n"
-            "```"
+            '<div class="state-flow">'
+            '<span class="state-box" style="background:#e8f0fe;color:#2c5282">OPEN</span>'
+            '<span class="state-arrow">\u2192</span>'
+            '<span class="state-box" style="background:#fef5e7;color:#b7791f">IN PROGRESS</span>'
+            '<span class="state-arrow">\u2192</span>'
+            '<span class="state-box" style="background:#e6f4ea;color:#1e7e34">RESOLVED</span>'
+            '<span class="state-arrow">\u2192</span>'
+            '<span class="state-box" style="background:#f0f0f0;color:#666">CLOSED</span>'
+            '</div>'
+            '<div style="margin-left:180px;margin-top:-8px">'
+            '<span class="state-arrow">\u21b3</span>'
+            '<span class="state-box" style="background:#f0f0f0;color:#666">CLOSED</span>'
+            '</div>',
+            unsafe_allow_html=True,
         )
 
-        trans_id = st.text_input("Ticket ID", key="trans_ticket_id")
-        current_status = st.text_input("Current Status (for reference)", disabled=True, value="", key="trans_current_status")
+        trans_id = st.text_input("\U0001f194 Ticket ID", key="trans_ticket_id")
+        current_status = ""
 
-        # If we have a ticket ID, try to fetch current status
         if trans_id:
             resp = _api_call("GET", f"/tickets/{trans_id}")
             if 200 <= resp.status_code < 300:
                 current_status = resp.json().get("status", "")
-                st.info(f"Current status: **{current_status}**")
+                st.markdown(f'Current: {_ticket_status_badge(current_status)}', unsafe_allow_html=True)
 
-        new_status = st.selectbox("New Status", ["open", "in_progress", "resolved", "closed"])
-        if st.button("Transition"):
-            if not trans_id:
-                st.warning("Enter a ticket ID.")
-            else:
-                resp = _api_call("PATCH", f"/tickets/{trans_id}/status", json_data={"status": new_status})
-                _display_response(resp)
+                # Show allowed transitions as buttons
+                allowed = VALID_TRANSITIONS.get(current_status, set())
+                if allowed:
+                    st.write("**Allowed transitions:**")
+                    cols = st.columns(len(allowed))
+                    for i, target in enumerate(sorted(allowed)):
+                        if cols[i].button(f"\u27a1 {target}", key=f"trans_{target}"):
+                            resp = _api_call("PATCH", f"/tickets/{trans_id}/status",
+                                             json_data={"status": target})
+                            if 200 <= resp.status_code < 300:
+                                st.success(f"\u2705 Status changed to {target}!")
+                                st.rerun()
+                            else:
+                                _display_response_rich(resp)
+                else:
+                    st.info("No transitions available (terminal state).")
+            elif resp.status_code == 404:
+                st.warning("Ticket not found.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -669,36 +1275,96 @@ def _render_tickets() -> None:
 
 
 def _render_wellness() -> None:
-    """Render Wellness page."""
-    st.header("Wellness Plans")
+    st.header("\U0001f338 Wellness Plans")
     if not _ensure_auth():
         return
 
     tab_generate, tab_list, tab_detail = st.tabs(["Generate Plan", "My Plans", "Plan Detail"])
 
     with tab_generate:
-        st.subheader("Generate Wellness Plan")
-        st.warning("Premium feature — requires an active premium subscription.")
-        wellness_lang = st.selectbox("Language", ["en", "ar"], key="wellness_lang")
-        if st.button("Generate"):
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("\u2728 Generate Wellness Plan")
+        st.markdown(
+            '<div class="aura-card-dark" style="text-align:center">'
+            '<span style="font-size:2rem">\U0001f512</span><br>'
+            '<span>Premium feature — requires an active premium subscription.</span></div>',
+            unsafe_allow_html=True,
+        )
+        wellness_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], key="wellness_lang")
+        if st.button("\U0001f9ed Generate", use_container_width=True):
             resp = _api_call("POST", "/wellness/plan", json_data={"language": wellness_lang})
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                st.success("\u2705 Plan generated!")
+                st.subheader(data.get("title", "Your Wellness Plan"))
+                st.write(data.get("summary", ""))
+                tasks = data.get("tasks", [])
+                if tasks:
+                    for i, task in enumerate(tasks):
+                        if isinstance(task, dict):
+                            st.markdown(f"**{i+1}. {task.get('task', task.get('title', ''))}**")
+                            if task.get("frequency"):
+                                st.caption(f"Frequency: {task['frequency']}")
+                        else:
+                            st.markdown(f"- {task}")
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
         st.subheader("My Wellness Plans")
-        if st.button("Load Plans"):
+        if st.button("\U0001f504 Load Plans", use_container_width=True):
             resp = _api_call("GET", "/wellness/plans")
-            _display_response(resp)
+            if 200 <= resp.status_code < 300:
+                plans = resp.json()
+                if plans:
+                    for p in plans:
+                        with st.expander(f"\U0001f338 {p.get('title', 'Untitled')}"):
+                            st.write(p.get("description", ""))
+                            st.markdown(
+                                _badge_html(p.get("language", "").upper(), "badge-info") + " " +
+                                _badge_html(f"{len(p.get('tasks', []))} tasks", "badge-plum"),
+                                unsafe_allow_html=True,
+                            )
+                            st.caption(f"Created: {p.get('created_at', '')[:10]}")
+                            st.caption(f"ID: `{p.get('id', '')}`")
+                    with st.expander("Raw JSON"):
+                        st.json(plans)
+                else:
+                    st.info("No plans yet.")
+            else:
+                _display_response_rich(resp)
 
     with tab_detail:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Plan Detail")
-        plan_id = st.text_input("Plan ID")
-        if st.button("Get Plan"):
+        plan_id = st.text_input("\U0001f194 Plan ID")
+        if st.button("\U0001f50d Get Plan", use_container_width=True):
             if not plan_id:
                 st.warning("Enter a plan ID.")
             else:
                 resp = _api_call("GET", f"/wellness/plans/{plan_id}")
-                _display_response(resp)
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    st.subheader(data.get("title", "Wellness Plan"))
+                    st.write(data.get("description", ""))
+                    tasks = data.get("tasks", [])
+                    if tasks:
+                        st.subheader("Tasks")
+                        for i, task in enumerate(tasks):
+                            if isinstance(task, dict):
+                                st.markdown(f"**{i+1}. {task.get('task', task.get('title', ''))}**")
+                                if task.get("frequency"):
+                                    st.markdown(_badge_html(task["frequency"], "badge-rose"), unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"- {task}")
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -716,8 +1382,13 @@ PAGES = {
     "Wellness": _render_wellness,
 }
 
-
-st.set_page_config(page_title="Aura Health API", page_icon="https://cdn-icons-png.flaticon.com/512/2965/2965567.png", layout="wide")
+st.set_page_config(
+    page_title="Aura Health - Test Dashboard",
+    page_icon="\U0001f338",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+_inject_css()
 _render_sidebar()
 page = st.session_state.get("page", "Auth")
 PAGES[page]()

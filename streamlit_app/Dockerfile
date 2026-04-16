@@ -15,6 +15,7 @@ COPY --from=builder /install/deps /usr/local
 WORKDIR /app
 
 COPY app.py .
+COPY .streamlit/ .streamlit/
 
 EXPOSE 8501
 

@@ -64,7 +64,7 @@ async def generate_plan(
         .maybe_single()
         .execute()
     )
-    profile = profile_resp.data or {}
+    profile = (profile_resp.data if profile_resp else None) or {}
 
     # Fetch last 14 days of health logs
     from datetime import date, timedelta
@@ -157,10 +157,12 @@ async def get_plan(
         .execute()
     )
 
-    if not resp.data:
+    plan_data = resp.data if resp else None
+
+    if not plan_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "plan_not_found"},
         )
 
-    return resp.data
+    return plan_data

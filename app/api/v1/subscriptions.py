@@ -89,7 +89,7 @@ async def subscription_status(
         .execute()
     )
 
-    if resp.data:
+    if resp and resp.data:
         return resp.data
 
     return {"tier": "free", "status": "active", "current_period_end": None}

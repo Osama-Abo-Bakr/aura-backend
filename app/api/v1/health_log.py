@@ -65,7 +65,7 @@ async def upsert_health_log(
         .execute()
     )
 
-    if not resp.data:
+    if not resp or not resp.data:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to save health log.",
@@ -196,7 +196,7 @@ async def get_health_log(
         .execute()
     )
 
-    if not resp.data:
+    if not resp or not resp.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "log_not_found"},
@@ -230,7 +230,7 @@ async def delete_health_log(
         .execute()
     )
 
-    if not resp.data:
+    if not resp or not resp.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "log_not_found"},

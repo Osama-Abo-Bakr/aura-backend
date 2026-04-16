@@ -84,7 +84,7 @@ async def send_chat_message(
             .maybe_single()
             .execute()
         )
-        if not conv_resp.data:
+        if not conv_resp or not conv_resp.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"error": "conversation_not_found"},
@@ -250,7 +250,7 @@ async def get_conversation_messages(
         .maybe_single()
         .execute()
     )
-    if not conv_resp.data or conv_resp.data["user_id"] != user_id:
+    if not conv_resp or not conv_resp.data or conv_resp.data["user_id"] != user_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "conversation_not_found"},
@@ -303,7 +303,7 @@ async def delete_conversation(
         .maybe_single()
         .execute()
     )
-    if not conv_resp.data or conv_resp.data["user_id"] != user_id:
+    if not conv_resp or not conv_resp.data or conv_resp.data["user_id"] != user_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "conversation_not_found"},

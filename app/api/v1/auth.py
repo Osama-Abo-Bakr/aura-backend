@@ -1,7 +1,9 @@
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.deps import get_current_user
 from app.db.supabase import supabase_admin
@@ -144,6 +146,7 @@ async def refresh(
     summary="Sign out the current user",
 )
 async def signout(
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
     current_user: dict[str, Any] = Depends(get_current_user),
     auth_service: AuthService = Depends(_get_auth_service),
 ) -> dict[str, str]:
@@ -151,7 +154,7 @@ async def signout(
     Revoke the current user's session in Supabase.
     Requires a valid access token in the Authorization header.
     """
-    access_token = current_user.get("access_token", "")
+    access_token = credentials.credentials
     auth_service.signout(access_token)
     return {"message": "Signed out successfully"}
 
@@ -186,6 +189,11 @@ async def upsert_profile(
     update_data = payload.model_dump(exclude_none=True)
     update_data["user_id"] = user_id
 
+    # Convert any datetime/date objects to ISO strings for JSON serialization.
+    for key, value in update_data.items():
+        if isinstance(value, (date, datetime)):
+            update_data[key] = value.isoformat()
+
     response = (
         supabase_admin.table("profiles")
         .upsert(update_data, on_conflict="user_id")
@@ -219,34 +227,36 @@ async def get_me(
     """
     user_id: str = current_user["sub"]
 
-    # Fetch profile
-    profile_resp = (
-        supabase_admin.table("profiles")
-        .select("*")
-        .eq("user_id", user_id)
-        .maybe_single()
-        .execute()
-    )
-
-    if not profile_resp.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Profile not found. Please complete onboarding.",
+    # Fetch profile — may not exist for brand-new users
+    profile_data = None
+    try:
+        profile_resp = (
+            supabase_admin.table("profiles")
+            .select("*")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
         )
+        profile_data = profile_resp.data if profile_resp else None
+    except Exception:
+        pass  # Profile may not exist yet
 
     # Fetch active subscription (may be absent for brand-new users)
-    sub_resp = (
-        supabase_admin.table("subscriptions")
-        .select("*")
-        .eq("user_id", user_id)
-        .eq("status", "active")
-        .maybe_single()
-        .execute()
-    )
-
-    subscription = sub_resp.data or {"tier": "free", "status": "active"}
+    sub_data = None
+    try:
+        sub_resp = (
+            supabase_admin.table("subscriptions")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("status", "active")
+            .maybe_single()
+            .execute()
+        )
+        sub_data = sub_resp.data if sub_resp else None
+    except Exception:
+        pass  # Subscription may not exist yet
 
     return {
-        "profile": profile_resp.data,
-        "subscription": subscription,
+        "profile": profile_data,
+        "subscription": sub_data or {"tier": "free", "status": "active"},
     }

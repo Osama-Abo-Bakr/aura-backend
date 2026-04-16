@@ -217,7 +217,7 @@ async def get_analysis_status(
         .execute()
     )
 
-    row = resp.data
+    row = resp.data if resp else None
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

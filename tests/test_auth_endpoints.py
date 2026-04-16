@@ -134,7 +134,7 @@ def test_refresh_invalid_token(MockAuthService, client):
 def test_signout_success(MockAuthService, client):
     svc = MockAuthService.return_value
     svc.signout.return_value = None
-    resp = client.post("/api/v1/auth/signout")
+    resp = client.post("/api/v1/auth/signout", headers={"Authorization": "Bearer test-token"})
     assert resp.status_code == 200
     assert resp.json()["message"] == "Signed out successfully"
 
