@@ -68,6 +68,7 @@ async def generate_plan(
 
     # Fetch last 14 days of health logs
     from datetime import date, timedelta
+
     since = (date.today() - timedelta(days=14)).isoformat()
     logs_resp = (
         supabase_admin.table("health_logs")
@@ -81,6 +82,7 @@ async def generate_plan(
 
     # Generate plan via Gemini
     from app.services.gemini import generate_wellness_plan
+
     plan_data = await generate_wellness_plan(
         user_profile=profile,
         health_logs=logs,
@@ -89,6 +91,7 @@ async def generate_plan(
 
     # Persist to wellness_plans table
     import uuid
+
     plan_id = str(uuid.uuid4())
     supabase_admin.table("wellness_plans").insert(
         {

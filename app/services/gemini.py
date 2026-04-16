@@ -31,7 +31,7 @@ genai.configure(api_key=settings.GEMINI_API_KEY)
 # Model identifiers
 # ---------------------------------------------------------------------------
 
-FLASH_MODEL = "gemini-2.5-flash"   # chat + wellness — latest stable
+FLASH_MODEL = "gemini-2.5-flash"  # chat + wellness — latest stable
 VISION_MODEL = "gemini-2.5-flash"  # skin + report — multimodal support
 
 # ---------------------------------------------------------------------------

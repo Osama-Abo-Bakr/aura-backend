@@ -1,4 +1,5 @@
 """Ticket support endpoints — CRUD + status state machine."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -181,7 +182,9 @@ async def update_ticket_status(
             detail={
                 "error": "invalid_transition",
                 "message": f"Cannot transition from '{current_status}' to '{new_status}'.",
-                "allowed_transitions": list(allowed) if allowed else ["none (terminal state)"],
+                "allowed_transitions": list(allowed)
+                if allowed
+                else ["none (terminal state)"],
             },
         )
 

@@ -3,8 +3,8 @@ from typing import Any
 
 import httpx
 import jwt
-from jwt.algorithms import ECAlgorithm
 from fastapi import HTTPException, status
+from jwt.algorithms import ECAlgorithm
 
 from app.core.config import settings
 

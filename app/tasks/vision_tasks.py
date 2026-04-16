@@ -26,14 +26,10 @@ def process_skin_analysis(
         from app.services.storage import download_file
 
         # Download file
-        file_bytes, content_type = asyncio.run(
-            download_file(file_path)
-        )
+        file_bytes, content_type = asyncio.run(download_file(file_path))
 
         # Run Gemini analysis
-        result = asyncio.run(
-            analyze_skin(file_bytes, content_type, language)
-        )
+        result = asyncio.run(analyze_skin(file_bytes, content_type, language))
 
         # Update analyses table with result (schema: result, analysis_type)
         supabase_admin.table("analyses").update(
@@ -55,9 +51,9 @@ def process_skin_analysis(
 
     except Exception as exc:
         # Update status to failed
-        supabase_admin.table("analyses").update(
-            {"status": "failed"}
-        ).eq("id", analysis_id).execute()
+        supabase_admin.table("analyses").update({"status": "failed"}).eq(
+            "id", analysis_id
+        ).execute()
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -74,13 +70,9 @@ def process_report_analysis(
         from app.services.gemini import explain_medical_report
         from app.services.storage import download_file
 
-        file_bytes, content_type = asyncio.run(
-            download_file(file_path)
-        )
+        file_bytes, content_type = asyncio.run(download_file(file_path))
 
-        result = asyncio.run(
-            explain_medical_report(file_bytes, content_type, language)
-        )
+        result = asyncio.run(explain_medical_report(file_bytes, content_type, language))
 
         supabase_admin.table("analyses").update(
             {
@@ -99,7 +91,7 @@ def process_report_analysis(
         return {"status": "completed", "analysis_id": analysis_id}
 
     except Exception as exc:
-        supabase_admin.table("analyses").update(
-            {"status": "failed"}
-        ).eq("id", analysis_id).execute()
+        supabase_admin.table("analyses").update({"status": "failed"}).eq(
+            "id", analysis_id
+        ).execute()
         raise self.retry(exc=exc, countdown=10)

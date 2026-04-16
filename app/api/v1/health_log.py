@@ -131,7 +131,9 @@ async def health_summary(
 
     resp = (
         supabase_admin.table("health_logs")
-        .select("log_date, mood, energy, sleep_hours, water_ml, exercise_minutes, symptoms")
+        .select(
+            "log_date, mood, energy, sleep_hours, water_ml, exercise_minutes, symptoms"
+        )
         .eq("user_id", user_id)
         .gte("log_date", since)
         .order("log_date", desc=False)
@@ -140,14 +142,22 @@ async def health_summary(
 
     rows = resp.data or []
 
-    mood_trend = [{"date": r["log_date"], "value": r["mood"]} for r in rows if r.get("mood")]
-    energy_trend = [{"date": r["log_date"], "value": r["energy"]} for r in rows if r.get("energy")]
-    sleep_trend = [{"date": r["log_date"], "value": r["sleep_hours"]} for r in rows if r.get("sleep_hours") is not None]
+    mood_trend = [
+        {"date": r["log_date"], "value": r["mood"]} for r in rows if r.get("mood")
+    ]
+    energy_trend = [
+        {"date": r["log_date"], "value": r["energy"]} for r in rows if r.get("energy")
+    ]
+    sleep_trend = [
+        {"date": r["log_date"], "value": r["sleep_hours"]}
+        for r in rows
+        if r.get("sleep_hours") is not None
+    ]
 
     # Symptom frequency
     symptom_counts: dict[str, int] = {}
     for r in rows:
-        for s in (r.get("symptoms") or []):
+        for s in r.get("symptoms") or []:
             symptom_counts[s] = symptom_counts.get(s, 0) + 1
     symptom_frequency = sorted(
         [{"symptom": k, "count": v} for k, v in symptom_counts.items()],
@@ -236,6 +246,8 @@ async def delete_health_log(
             detail={"error": "log_not_found"},
         )
 
-    supabase_admin.table("health_logs").delete().eq("user_id", user_id).eq("log_date", log_date).execute()
+    supabase_admin.table("health_logs").delete().eq("user_id", user_id).eq(
+        "log_date", log_date
+    ).execute()
 
     return {"deleted": True}

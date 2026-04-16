@@ -75,7 +75,9 @@ async def check_quota(
 
     # Count interactions for the current calendar month.
     now = datetime.now(tz=timezone.utc)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    month_start = now.replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    ).isoformat()
 
     count_resp = (
         supabase_admin.table("ai_interactions")

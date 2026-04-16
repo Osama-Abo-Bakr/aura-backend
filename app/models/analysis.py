@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Storage upload helpers
 # ---------------------------------------------------------------------------
@@ -20,7 +19,7 @@ class UploadURLRequest(BaseModel):
 
 class UploadURLResponse(BaseModel):
     upload_url: str  # pre-signed PUT URL
-    file_path: str   # storage path to reference when triggering analysis
+    file_path: str  # storage path to reference when triggering analysis
     expires_in: int  # seconds until the signed URL expires
 
 
@@ -30,7 +29,9 @@ class UploadURLResponse(BaseModel):
 
 
 class SkinAnalysisRequest(BaseModel):
-    file_path: str = Field(..., description="Storage path returned by UploadURLResponse")
+    file_path: str = Field(
+        ..., description="Storage path returned by UploadURLResponse"
+    )
     language: Literal["ar", "en"] = "ar"
     notes: str | None = Field(default=None, max_length=500)
 
@@ -57,7 +58,9 @@ class SkinAnalysisResponse(BaseModel):
 
 
 class ReportAnalysisRequest(BaseModel):
-    file_path: str = Field(..., description="Storage path returned by UploadURLResponse")
+    file_path: str = Field(
+        ..., description="Storage path returned by UploadURLResponse"
+    )
     language: Literal["ar", "en"] = "ar"
     report_type: str | None = Field(
         default=None,

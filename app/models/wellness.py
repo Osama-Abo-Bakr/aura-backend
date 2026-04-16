@@ -4,16 +4,19 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Health Log
 # ---------------------------------------------------------------------------
 
 
 class HealthLogCreate(BaseModel):
-    log_date: date = Field(..., description="Date the log entry refers to (YYYY-MM-DD).")
+    log_date: date = Field(
+        ..., description="Date the log entry refers to (YYYY-MM-DD)."
+    )
     mood: int | None = Field(default=None, ge=1, le=10, description="Mood score 1–10.")
-    energy: int | None = Field(default=None, ge=1, le=10, description="Energy score 1–10.")
+    energy: int | None = Field(
+        default=None, ge=1, le=10, description="Energy score 1–10."
+    )
     sleep_hours: float | None = Field(default=None, ge=0, le=24)
     water_ml: int | None = Field(default=None, ge=0)
     exercise_minutes: int | None = Field(default=None, ge=0)

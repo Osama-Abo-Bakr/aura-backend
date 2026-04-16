@@ -95,12 +95,15 @@ app.include_router(v1_router)
 # Infra probes
 # ---------------------------------------------------------------------------
 
+
 @app.get("/health", tags=["infra"], summary="Liveness probe")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/ready", tags=["infra"], summary="Readiness probe — checks DB + AI connectivity")
+@app.get(
+    "/ready", tags=["infra"], summary="Readiness probe — checks DB + AI connectivity"
+)
 async def ready(request: Request) -> dict:
     """
     Checks:
@@ -114,6 +117,7 @@ async def ready(request: Request) -> dict:
     # --- Supabase DB ---
     try:
         from app.db.supabase import supabase_admin
+
         supabase_admin.table("subscriptions").select("id").limit(1).execute()
         checks["database"] = "ok"
     except Exception as exc:

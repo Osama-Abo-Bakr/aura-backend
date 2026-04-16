@@ -27,6 +27,7 @@ logger = structlog.get_logger(__name__)
 # Request-ID middleware
 # ---------------------------------------------------------------------------
 
+
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """
     Attach a unique X-Request-ID to every request.
@@ -50,6 +51,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 # ---------------------------------------------------------------------------
 # Structured access-log middleware
 # ---------------------------------------------------------------------------
+
 
 class AccessLogMiddleware(BaseHTTPMiddleware):
     """
@@ -90,6 +92,7 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
 # ---------------------------------------------------------------------------
 # Custom exception handlers
 # ---------------------------------------------------------------------------
+
 
 async def http_exception_handler(request: Request, exc) -> JSONResponse:
     """Normalise HTTPException into {error, message, request_id}."""

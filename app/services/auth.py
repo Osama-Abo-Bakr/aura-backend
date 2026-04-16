@@ -1,4 +1,5 @@
 """Supabase Auth service — wraps the Supabase Auth REST API."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,7 +8,12 @@ from typing import Literal
 import httpx
 import structlog
 from fastapi import HTTPException, status
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from app.core.config import settings
 
@@ -47,7 +53,9 @@ class AuthService:
     def __init__(self) -> None:
         self._client = httpx.Client(timeout=10.0)
 
-    def _post(self, path: str, data: dict, extra_headers: dict | None = None) -> httpx.Response:
+    def _post(
+        self, path: str, data: dict, extra_headers: dict | None = None
+    ) -> httpx.Response:
         """Post to Supabase Auth API with retry and timeout. Converts transport errors to 503."""
         try:
             return self._post_with_retry(path, data, extra_headers)
@@ -63,7 +71,9 @@ class AuthService:
         retry=retry_if_exception_type(httpx.TransportError),
         reraise=True,
     )
-    def _post_with_retry(self, path: str, data: dict, extra_headers: dict | None = None) -> httpx.Response:
+    def _post_with_retry(
+        self, path: str, data: dict, extra_headers: dict | None = None
+    ) -> httpx.Response:
         headers = {
             "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
             **(extra_headers or {}),
@@ -73,11 +83,14 @@ class AuthService:
 
     def signup(self, email: str, password: str, full_name: str) -> dict:
         """Register a new user via Supabase Auth."""
-        resp = self._post("/signup", {
-            "email": email,
-            "password": password,
-            "data": {"full_name": full_name},
-        })
+        resp = self._post(
+            "/signup",
+            {
+                "email": email,
+                "password": password,
+                "data": {"full_name": full_name},
+            },
+        )
         if resp.status_code == 400:
             body = resp.json()
             if "Email already registered" in body.get("msg", ""):
@@ -89,11 +102,15 @@ class AuthService:
 
     def signin(self, email: str, password: str) -> AuthTokens:
         """Authenticate user and return tokens."""
-        resp = self._post("/token?grant_type=password", {"email": email, "password": password})
+        resp = self._post(
+            "/token?grant_type=password", {"email": email, "password": password}
+        )
         if resp.status_code == 400 or resp.status_code == 422:
             raise InvalidCredentialsError()
         if resp.status_code != 200:
-            raise InvalidCredentialsError(detail=f"Unexpected error: {resp.status_code}")
+            raise InvalidCredentialsError(
+                detail=f"Unexpected error: {resp.status_code}"
+            )
         data = resp.json()
         return AuthTokens(
             access_token=data["access_token"],
@@ -103,11 +120,15 @@ class AuthService:
 
     def refresh_token(self, refresh_token: str) -> AuthTokens:
         """Exchange a refresh token for new tokens via Supabase Auth REST API."""
-        resp = self._post("/token?grant_type=refresh_token", {"refresh_token": refresh_token})
+        resp = self._post(
+            "/token?grant_type=refresh_token", {"refresh_token": refresh_token}
+        )
         if resp.status_code == 401 or resp.status_code == 400:
             raise InvalidRefreshTokenError()
         if resp.status_code != 200:
-            raise InvalidRefreshTokenError(detail=f"Unexpected error: {resp.status_code}")
+            raise InvalidRefreshTokenError(
+                detail=f"Unexpected error: {resp.status_code}"
+            )
         data = resp.json()
         return AuthTokens(
             access_token=data["access_token"],
@@ -118,7 +139,9 @@ class AuthService:
     def signout(self, access_token: str) -> None:
         """Revoke the user's session in Supabase by calling /auth/v1/logout."""
         try:
-            self._post("/logout", {}, extra_headers={"Authorization": f"Bearer {access_token}"})
+            self._post(
+                "/logout", {}, extra_headers={"Authorization": f"Bearer {access_token}"}
+            )
         except httpx.TransportError:
             pass  # Signout is best-effort — don't block the user on network failures
         except AuthServiceError:

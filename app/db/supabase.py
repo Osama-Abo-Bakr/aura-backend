@@ -1,6 +1,5 @@
-from supabase import Client, create_client
-
 from app.core.config import settings
+from supabase import Client, create_client
 
 # Service-role admin client — bypasses RLS.
 # The backend always operates with service-role privileges since it verifies

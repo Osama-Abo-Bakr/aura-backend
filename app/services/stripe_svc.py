@@ -108,9 +108,13 @@ async def _handle_checkout_completed(session: dict) -> None:
     """Activate premium subscription after successful checkout."""
     from app.db.supabase import supabase_admin
 
-    user_id = session.get("client_reference_id") or session.get("metadata", {}).get("user_id")
+    user_id = session.get("client_reference_id") or session.get("metadata", {}).get(
+        "user_id"
+    )
     if not user_id:
-        logger.error("checkout.session.completed missing user_id: %s", session.get("id"))
+        logger.error(
+            "checkout.session.completed missing user_id: %s", session.get("id")
+        )
         return
 
     stripe_customer_id = session.get("customer")
@@ -164,6 +168,7 @@ async def _handle_subscription_updated(subscription: dict) -> None:
     current_period_end = None
     if subscription.get("current_period_end"):
         import datetime
+
         current_period_end = datetime.datetime.fromtimestamp(
             subscription["current_period_end"], tz=datetime.timezone.utc
         ).isoformat()
@@ -176,7 +181,9 @@ async def _handle_subscription_updated(subscription: dict) -> None:
         }
     ).eq("stripe_subscription_id", stripe_subscription_id).execute()
 
-    logger.info("Updated subscription %s → %s / %s", stripe_subscription_id, tier, our_status)
+    logger.info(
+        "Updated subscription %s → %s / %s", stripe_subscription_id, tier, our_status
+    )
 
 
 async def _handle_subscription_deleted(subscription: dict) -> None:

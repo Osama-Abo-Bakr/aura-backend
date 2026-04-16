@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-
 # ---------------------------------------------------------------------------
 # Profile
 # ---------------------------------------------------------------------------
@@ -71,6 +70,7 @@ class SubscriptionResponse(BaseModel):
 
 class RegisterRequest(BaseModel):
     """Request body for POST /auth/register."""
+
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     full_name: str = Field(..., min_length=1, max_length=120)
@@ -78,6 +78,7 @@ class RegisterRequest(BaseModel):
 
 class RegisterResponse(BaseModel):
     """Response body for POST /auth/register."""
+
     user_id: UUID
     email: str
     full_name: str
@@ -85,17 +86,20 @@ class RegisterResponse(BaseModel):
 
 class TokenRequest(BaseModel):
     """Request body for POST /auth/token."""
+
     email: EmailStr
     password: str = Field(..., min_length=1)
 
 
 class RefreshRequest(BaseModel):
     """Request body for POST /auth/refresh."""
+
     refresh_token: str = Field(..., min_length=1)
 
 
 class TokenResponse(BaseModel):
     """Response body for POST /auth/token and POST /auth/refresh."""
+
     access_token: str
     refresh_token: str
     expires_in: int

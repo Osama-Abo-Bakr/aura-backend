@@ -35,7 +35,11 @@ def generate_upload_url(user_id: str, file_name: str, content_type: str) -> dict
     response = supabase_admin.storage.from_(BUCKET).create_signed_upload_url(path)
     # supabase-py may return either {"signedURL": ...} or {"signed_url": ...}
     # depending on the client version — handle both shapes.
-    upload_url = response.get("signedURL") or response.get("signed_url") or response.get("url", "")
+    upload_url = (
+        response.get("signedURL")
+        or response.get("signed_url")
+        or response.get("url", "")
+    )
     return {
         "upload_url": upload_url,
         "file_path": path,
