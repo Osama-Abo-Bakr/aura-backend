@@ -62,3 +62,41 @@ class SubscriptionResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+
+class RegisterRequest(BaseModel):
+    """Request body for POST /auth/register."""
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str = Field(..., min_length=1, max_length=120)
+
+
+class RegisterResponse(BaseModel):
+    """Response body for POST /auth/register."""
+    user_id: UUID
+    email: str
+    full_name: str
+
+
+class TokenRequest(BaseModel):
+    """Request body for POST /auth/token."""
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+
+class RefreshRequest(BaseModel):
+    """Request body for POST /auth/refresh."""
+    refresh_token: str = Field(..., min_length=1)
+
+
+class TokenResponse(BaseModel):
+    """Response body for POST /auth/token and POST /auth/refresh."""
+    access_token: str
+    refresh_token: str
+    expires_in: int
+    token_type: str = "bearer"
