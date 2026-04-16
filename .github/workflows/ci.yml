@@ -235,15 +235,10 @@ jobs:
           sarif_file: trivy-fs-results.sarif
           category: trivy-fs
 
-      # ── Docker Scout: supply chain analysis ──────────────────────────────
-      - name: Docker Scout comparison
-        uses: docker/scout-action@v1
-        if: github.event_name == 'pull_request'
-        with:
-          command: compare
-          image: ${{ env.DOCKER_IMAGE }}:ci
-          to-env: production
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # ── Docker image summary ─────────────────────────────────────────────
+      - name: Docker image summary
+        run: |
+          docker images ${{ env.DOCKER_IMAGE }}:ci --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 
   # =========================================================================
   # 5. DEPLOY — only on main branch, gated on all checks passing
