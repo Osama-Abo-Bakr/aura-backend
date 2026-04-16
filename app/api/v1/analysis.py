@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field
 
 from app.core.deps import get_current_user, get_current_user_with_tier, make_quota_checker
 from app.db.supabase import supabase_admin
-from app.services.gemini import VISION_MODEL
 from app.services.storage import generate_upload_url
 
 router = APIRouter(prefix="/analysis")
@@ -132,7 +131,7 @@ async def run_skin_analysis(
         {
             "id": analysis_id,
             "user_id": user_id,
-            "type": "skin",
+            "analysis_type": "skin",
             "file_path": body.file_path,
             "language": body.language,
             "status": "processing",
@@ -175,7 +174,7 @@ async def run_report_analysis(
         {
             "id": analysis_id,
             "user_id": user_id,
-            "type": "report",
+            "analysis_type": "report",
             "file_path": body.file_path,
             "language": body.language,
             "status": "processing",
@@ -211,25 +210,14 @@ async def get_analysis_status(
 
     resp = (
         supabase_admin.table("analyses")
-        .select("id, status, result_json, type, created_at")
+        .select("id, user_id, status, result, analysis_type, created_at")
         .eq("id", analysis_id)
+        .eq("user_id", user_id)
         .maybe_single()
         .execute()
     )
 
     row = resp.data
-    if not row or row.get("user_id") != user_id:
-        # Re-fetch with user_id filter to avoid leaking existence.
-        row_resp = (
-            supabase_admin.table("analyses")
-            .select("id, status, result_json, type, created_at")
-            .eq("id", analysis_id)
-            .eq("user_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-        row = row_resp.data
-
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -239,8 +227,8 @@ async def get_analysis_status(
     return {
         "analysis_id": row["id"],
         "status": row["status"],
-        "result": row.get("result_json"),
-        "type": row["type"],
+        "result": row.get("result"),
+        "type": row["analysis_type"],
         "created_at": row["created_at"],
     }
 

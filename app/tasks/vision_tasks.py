@@ -22,35 +22,32 @@ def process_skin_analysis(
 ) -> dict:
     """Process skin analysis asynchronously."""
     try:
-        from app.services.gemini import VISION_MODEL, analyze_skin
+        from app.services.gemini import analyze_skin
         from app.services.storage import download_file
 
         # Download file
-        file_bytes, content_type = asyncio.get_event_loop().run_until_complete(
+        file_bytes, content_type = asyncio.run(
             download_file(file_path)
         )
 
         # Run Gemini analysis
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             analyze_skin(file_bytes, content_type, language)
         )
 
-        # Update analyses table with result
+        # Update analyses table with result (schema: result, analysis_type)
         supabase_admin.table("analyses").update(
             {
-                "result_json": result,
-                "model_used": VISION_MODEL,
+                "result": result,
                 "status": "completed",
             }
         ).eq("id", analysis_id).execute()
 
-        # Record quota interaction
+        # Record quota interaction (schema: interaction_type, no model_used/result_json)
         supabase_admin.table("ai_interactions").insert(
             {
                 "user_id": user_id,
-                "type": "skin",
-                "model_used": VISION_MODEL,
-                "result_json": result,
+                "interaction_type": "skin",
             }
         ).execute()
 
@@ -74,21 +71,20 @@ def process_report_analysis(
 ) -> dict:
     """Process medical report analysis asynchronously."""
     try:
-        from app.services.gemini import VISION_MODEL, explain_medical_report
+        from app.services.gemini import explain_medical_report
         from app.services.storage import download_file
 
-        file_bytes, content_type = asyncio.get_event_loop().run_until_complete(
+        file_bytes, content_type = asyncio.run(
             download_file(file_path)
         )
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             explain_medical_report(file_bytes, content_type, language)
         )
 
         supabase_admin.table("analyses").update(
             {
-                "result_json": result,
-                "model_used": VISION_MODEL,
+                "result": result,
                 "status": "completed",
             }
         ).eq("id", analysis_id).execute()
@@ -96,9 +92,7 @@ def process_report_analysis(
         supabase_admin.table("ai_interactions").insert(
             {
                 "user_id": user_id,
-                "type": "report",
-                "model_used": VISION_MODEL,
-                "result_json": result,
+                "interaction_type": "report",
             }
         ).execute()
 

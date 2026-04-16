@@ -1,0 +1,73 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint with ruff
+        run: |
+          pip install ruff
+          ruff check app/ --select E,F,W --ignore E501
+
+      - name: Type-check with mypy
+        run: |
+          pip install mypy types-stripe
+          mypy app/ --ignore-missing-imports --no-strict-optional
+        continue-on-error: true  # advisory until stubs are complete
+
+      - name: Run tests
+        env:
+          ENVIRONMENT: test
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET_TEST || 'test-secret-at-least-32-chars-long-ok' }}
+          GEMINI_API_KEY: test-gemini-key
+          STRIPE_SECRET_KEY: sk_test_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_placeholder
+          STRIPE_PRICE_ID_PREMIUM: price_placeholder
+          REDIS_URL: redis://localhost:6379
+        run: |
+          pytest tests/ -v --tb=short
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t aura-backend:ci .

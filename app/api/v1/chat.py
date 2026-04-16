@@ -109,19 +109,20 @@ async def send_chat_message(
     ).execute()
 
     # ------------------------------------------------------------------
-    # 3. Fetch last 10 messages for context (ASC order)
+    # 3. Fetch last 10 messages for context
     # ------------------------------------------------------------------
+    # Order DESC to get the most recent 10, then reverse for chronological order.
     history_resp = (
         supabase_admin.table("messages")
         .select("role, content")
         .eq("conversation_id", conversation_id)
-        .order("created_at", desc=False)
+        .order("created_at", desc=True)
         .limit(10)
         .execute()
     )
     message_history: list[dict] = [
         {"role": row["role"], "content": row["content"]}
-        for row in (history_resp.data or [])
+        for row in reversed(history_resp.data or [])
     ]
 
     # ------------------------------------------------------------------
@@ -131,7 +132,6 @@ async def send_chat_message(
         {
             "user_id": user_id,
             "interaction_type": "chat",
-            "model_used": FLASH_MODEL,
         }
     ).execute()
 

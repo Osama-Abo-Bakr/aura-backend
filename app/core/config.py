@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # Stripe
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID_PREMIUM: str = ""  # Set in Stripe dashboard, e.g. price_xxx
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
