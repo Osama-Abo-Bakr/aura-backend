@@ -1,0 +1,21 @@
+# Gitleaks configuration for Aura backend
+# https://gitleaks.io/docs/configuration/
+
+[allowlist]
+  description = "Allowlisted false positives — test secrets and placeholders"
+
+  paths = [
+    '''\.env\.example$''',
+    '''tests/.*\.py$''',
+    '''conftest\.py$''',
+  ]
+
+  regexes = [
+    '''test-secret-at-least-32-chars-long-ok''',
+    '''sk_test_placeholder''',
+    '''whsec_placeholder''',
+    '''price_placeholder''',
+    '''test-service-role-key''',
+    '''test-gemini-key''',
+    '''test-jwt-secret''',
+  ]

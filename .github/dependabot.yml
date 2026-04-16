@@ -1,0 +1,49 @@
+version: 2
+
+updates:
+  # ── Python dependencies ────────────────────────────────────────────────
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+    reviewers:
+      - Osama-Abo-Bakr
+
+  # ── Streamlit dashboard dependencies ───────────────────────────────────
+  - package-ecosystem: pip
+    directory: /streamlit_app
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - python
+      - streamlit
+
+  # ── Docker dependencies ───────────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - docker
+
+  # ── GitHub Actions ────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci-cd
