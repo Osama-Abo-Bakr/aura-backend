@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from app.core.deps import get_current_user, make_quota_checker
 from app.db.supabase import supabase_admin
-from app.services.gemini import FLASH_MODEL, stream_chat_response
+from app.services.gemini import stream_chat_response
 
 router = APIRouter(prefix="/chat")
 
