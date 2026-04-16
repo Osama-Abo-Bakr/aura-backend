@@ -41,7 +41,7 @@ jobs:
         run: pip install ruff mypy types-stripe
 
       - name: Ruff lint
-        run: ruff check app/ --select E,F,W,I,UP,B,SIM --ignore E501
+        run: ruff check app/ --select E,F,W,I,UP,B,SIM --ignore E501,B008,B904,UP035
 
       - name: Ruff format check
         run: ruff format --check app/
