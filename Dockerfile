@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1 — dependency builder
 # ---------------------------------------------------------------------------
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ RUN pip install --upgrade pip \
 # ---------------------------------------------------------------------------
 # Stage 2 — runtime image
 # ---------------------------------------------------------------------------
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 # Create a non-root user for security
 RUN addgroup --system aura && adduser --system --ingroup aura aura
