@@ -454,6 +454,296 @@ input:focus, textarea:focus, select:focus {
     color: var(--aura-plum-light);
     margin-bottom: 8px;
 }
+
+/* === GEN-Z DESIGN SYSTEM ADDITIONS === */
+
+/* Glassmorphism card */
+.glass-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(61, 50, 68, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(61, 50, 68, 0.12);
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Stat card - vertical layout with big number */
+.stat-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(249,232,228,0.6));
+    border-radius: var(--radius-lg);
+    padding: 20px 16px;
+    text-align: center;
+    border: 1px solid var(--aura-peach-dark);
+    transition: transform 0.2s ease;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-card .stat-icon { font-size: 2rem; margin-bottom: 8px; }
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+}
+.stat-card .stat-label { font-size: 0.8rem; color: var(--aura-plum-light); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+/* Stat card color variants */
+.stat-card.purple { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(196,114,127,0.08)); }
+.stat-card.blue { background: linear-gradient(135deg, rgba(56,189,248,0.08), rgba(139,92,246,0.08)); }
+.stat-card.green { background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(56,189,248,0.08)); }
+.stat-card.rose { background: linear-gradient(135deg, rgba(196,114,127,0.08), rgba(249,232,228,0.3)); }
+.stat-card.gold { background: linear-gradient(135deg, rgba(212,165,116,0.08), rgba(249,232,228,0.3)); }
+
+/* Admin grid */
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 16px 0;
+}
+@media (max-width: 768px) {
+    .admin-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Data row - key value display */
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--aura-peach-dark);
+}
+.data-row:last-child { border-bottom: none; }
+.data-row .data-key { color: var(--aura-plum-light); font-size: 0.85rem; }
+.data-row .data-value { color: var(--aura-plum); font-weight: 600; }
+
+/* Interaction bar chart */
+.interaction-bar-wrap { margin: 8px 0; }
+.interaction-bar-label { font-size: 0.8rem; color: var(--aura-plum-light); margin-bottom: 4px; }
+.interaction-bar {
+    height: 28px;
+    border-radius: 14px;
+    background: var(--aura-peach);
+    overflow: hidden;
+    position: relative;
+}
+.interaction-bar-fill {
+    height: 100%;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    transition: width 0.5s ease;
+}
+.interaction-bar-fill.chat { background: linear-gradient(135deg, var(--aura-rose), #8B5CF6); }
+.interaction-bar-fill.skin { background: linear-gradient(135deg, #38BDF8, #8B5CF6); }
+.interaction-bar-fill.report { background: linear-gradient(135deg, #34D399, #38BDF8); }
+.interaction-bar-fill.total { background: linear-gradient(135deg, var(--aura-rose), var(--aura-gold)); }
+
+/* User card */
+.user-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid #8B5CF6;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.user-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.user-card .user-email { font-weight: 600; color: var(--aura-plum); font-size: 0.95rem; }
+.user-card .user-meta { font-size: 0.8rem; color: var(--aura-plum-light); margin-top: 4px; }
+
+/* Danger zone */
+.danger-zone {
+    background: linear-gradient(135deg, rgba(212,100,92,0.05), rgba(212,100,92,0.1));
+    border: 2px solid var(--aura-error);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 16px 0;
+}
+.danger-zone .danger-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--aura-error);
+    margin-bottom: 8px;
+}
+.danger-zone .danger-text {
+    color: var(--aura-plum-light);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+/* Action button - gradient primary */
+.action-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6);
+    color: white !important;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 15px rgba(196, 114, 127, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+}
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(196, 114, 127, 0.4);
+}
+
+/* Danger action button */
+.danger-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--aura-error), #c0392b);
+    color: white !important;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 15px rgba(212, 100, 92, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.danger-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 100, 92, 0.4);
+}
+
+/* Section glass */
+.section-glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+/* Pill badge - smaller and more colorful */
+.pill-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.pill-badge.purple { background: rgba(139,92,246,0.15); color: #8B5CF6; }
+.pill-badge.blue { background: rgba(56,189,248,0.15); color: #0EA5E9; }
+.pill-badge.green { background: rgba(52,211,153,0.15); color: #059669; }
+.pill-badge.rose { background: var(--aura-peach); color: var(--aura-rose-dark); }
+.pill-badge.gold { background: rgba(212,165,116,0.2); color: #975a16; }
+
+/* Log entry card */
+.log-entry {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid var(--aura-rose);
+    transition: transform 0.2s ease;
+}
+.log-entry:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.log-entry .log-date { font-weight: 600; color: var(--aura-plum); font-size: 0.9rem; }
+.log-entry .log-details { color: var(--aura-plum-light); font-size: 0.85rem; margin-top: 4px; }
+
+/* Mood indicator */
+.mood-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+.mood-indicator.low { background: rgba(212,100,92,0.15); color: var(--aura-error); }
+.mood-indicator.medium { background: rgba(226,166,66,0.15); color: var(--aura-warning); }
+.mood-indicator.high { background: rgba(106,175,123,0.15); color: var(--aura-success); }
+
+/* Page-level animation */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+    animation: slideUp 0.4s ease-out;
+}
+
+/* Override Streamlit buttons */
+.stButton > button[kind="primary"], .stForm button[kind="primary"] {
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6) !important;
+    color: white !important;
+    border-radius: 12px !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(196,114,127,0.3) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.stButton > button[kind="primary"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(196,114,127,0.4) !important;
+}
+
+/* Override Streamlit tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px !important;
+    background: var(--aura-peach) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+.stTabs [aria-selected="true"] {
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    color: var(--aura-rose-dark) !important;
+}
+
+/* Override Streamlit expander */
+.streamlit-expanderHeader {
+    background: var(--aura-peach) !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+}
+
+/* Main content area background */
+.stApp > main {
+    background: linear-gradient(180deg, #FFF8F6 0%, #F9E8E4 100%) !important;
+}
 """
 
 
@@ -875,14 +1165,14 @@ def _render_profile() -> None:
 
 
 def _render_chat() -> None:
-    st.markdown('<div class="aura-page-header"><h1>\U0001f4ac Chat</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4ac <span class="gradient-text">Chat</span></h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
     tab_send, tab_convos = st.tabs(["Send Message", "Conversations"])
 
     with tab_send:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
 
         # --- Conversation selector ---
         convos = []
@@ -1061,7 +1351,7 @@ def _render_chat() -> None:
                     analysis_id = analysis_meta_info.get("analysis_id", "")
                     analysis_type = analysis_meta_info.get("analysis_type", "unknown")
                     st.markdown(
-                        '<div class="aura-card-dark">'
+                        '<div class="glass-card" style="background:rgba(61,50,68,0.9);color:var(--aura-cream)">'
                         f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
                         f'{_badge_html(f"Analysis: {analysis_type}", "badge-rose")}'
                         f'</div>'
@@ -1127,7 +1417,7 @@ def _render_chat() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_convos:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         col1, col2 = st.columns([3, 1])
         with col2:
             if st.button("\U0001f504 Refresh", width="stretch"):
@@ -1149,9 +1439,9 @@ def _render_chat() -> None:
                     f'<div class="aura-convo-card">'
                     f'<div class="convo-title">\U0001f4ac {title}</div>'
                     f'<div class="convo-meta">'
-                    f'{_badge_html(lang.upper(), "badge-info")} '
-                    f'{_badge_html(f"{msg_count} msgs", "badge-plum")} '
-                    f'{_badge_html(created, "badge-gold")}'
+                    f'<span class="pill-badge purple">{lang.upper()}</span> '
+                    f'<span class="pill-badge rose">{msg_count} msgs</span> '
+                    f'<span class="pill-badge gold">{created}</span>'
                     f'</div>'
                     f'<small style="color:var(--aura-plum-light);font-size:0.75rem">ID: {convo_id_short}...</small>'
                     f'</div>',
@@ -1168,11 +1458,13 @@ def _render_chat() -> None:
                             for m in msgs:
                                 role = m.get("role", "unknown")
                                 content = m.get("content", "")
+                                ts = m.get("created_at", "")
+                                ts_display = f'<div style="font-size:0.7rem;opacity:0.6;margin-top:4px">{ts[:16]}</div>' if ts else ""
                                 cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
                                 file_info = ""
                                 if m.get("file_path"):
                                     file_info = f'<br><small>\U0001f4ce {m["file_path"]}</small>'
-                                st.markdown(f'<div class="{cls}">{content}{file_info}</div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="{cls}">{content}{file_info}{ts_display}</div>', unsafe_allow_html=True)
                         else:
                             _display_response_rich(resp)
                 with col_d:
@@ -1209,7 +1501,7 @@ def _render_chat() -> None:
 
 
 def _render_health_log() -> None:
-    st.markdown('<div class="aura-page-header"><h1>\U0001f4c8 Health Log</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4c8 <span class="gradient-text">Health Log</span></h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1218,13 +1510,13 @@ def _render_health_log() -> None:
     )
 
     with tab_upsert:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Create / Update Log Entry")
         with st.form("health_log_form"):
             hl_date = st.date_input("\U0001f4c5 Date", value=date.today())
             hl_mood = st.slider("\U0001f60a Mood (1-10)", 1, 10, value=5)
-            hl_energy = st.slider("\U0001f50b Energy (1-10)", 1, 10, value=5)
-            hl_sleep = st.slider("\U0001f319 Sleep Hours (0-24)", 0.0, 24.0, value=7.0, step=0.5)
+            hl_energy = st.slider("\u26a1 Energy (1-10)", 1, 10, value=5)
+            hl_sleep = st.slider("\U0001f634 Sleep Hours (0-24)", 0.0, 24.0, value=7.0, step=0.5)
             hl_water = st.number_input("\U0001f4a7 Water (ml)", min_value=0, value=0)
             hl_exercise = st.number_input("\U0001f3cb Exercise (minutes)", min_value=0, value=0)
             hl_symptoms = st.text_input("\U0001f3e5 Symptoms (comma-separated)")
@@ -1254,17 +1546,56 @@ def _render_health_log() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Recent Logs")
         hl_days = st.number_input("\U0001f4c5 Days", min_value=1, max_value=365, value=30, key="hl_days")
         if st.button("\U0001f4da Load Logs", width="stretch"):
             with st.spinner("Loading logs..."):
                 resp = _api_call("GET", "/health-log", params={"days": hl_days})
-            _display_response_rich(resp)
+            if 200 <= resp.status_code < 300:
+                logs = resp.json()
+                if isinstance(logs, list) and logs:
+                    for log in logs:
+                        log_date = log.get("log_date", "?")
+                        mood = log.get("mood", "?")
+                        energy = log.get("energy", "?")
+                        sleep = log.get("sleep_hours", "?")
+                        symptoms = log.get("symptoms", [])
+
+                        # Mood indicator class
+                        if isinstance(mood, (int, float)):
+                            mood_cls = "low" if mood <= 3 else ("medium" if mood <= 6 else "high")
+                            mood_display = f'<span class="mood-indicator {mood_cls}">\U0001f60a {mood}/10</span>'
+                        else:
+                            mood_display = f'<span class="mood-indicator medium">\U0001f60a {mood}</span>'
+
+                        # Symptoms as pill badges
+                        symptom_html = ""
+                        if symptoms and isinstance(symptoms, list):
+                            symptom_html = " ".join(f'<span class="pill-badge rose">{s}</span>' for s in symptoms)
+
+                        st.markdown(f"""
+                        <div class="log-entry">
+                          <div style="display:flex;justify-content:space-between;align-items:center">
+                            <div class="log-date">\U0001f4c5 {log_date}</div>
+                            {mood_display}
+                          </div>
+                          <div class="log-details">
+                            \u26a1 Energy: <strong>{energy}</strong>/10 &nbsp;\U0001f634 Sleep: <strong>{sleep}</strong>h
+                          </div>
+                          {'<div style="margin-top:6px">' + symptom_html + '</div>' if symptom_html else ''}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with st.expander("Raw JSON"):
+                        st.json(logs)
+                else:
+                    _display_response_rich(resp)
+            else:
+                _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_summary:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("\U0001f4ca Health Summary & Charts")
         summary_days = st.slider("\U0001f4c5 Days", min_value=7, max_value=90, value=30, key="summary_days")
         if st.button("\U0001f504 Load Summary", width="stretch"):
@@ -1273,20 +1604,26 @@ def _render_health_log() -> None:
             if 200 <= resp.status_code < 300:
                 data = resp.json()
 
-                # Metric cards
-                col1, col2, col3 = st.columns(3)
-                col1.markdown(
-                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
-                    f'<div class="metric-value">{data.get("entry_count",0)}</div>'
-                    f'<div class="metric-label">Days Tracked</div></div>', unsafe_allow_html=True)
-                col2.markdown(
-                    f'<div class="aura-metric"><div class="metric-icon">\U0001f3cb</div>'
-                    f'<div class="metric-value">{data.get("exercise_total_minutes",0)}</div>'
-                    f'<div class="metric-label">Total Exercise (min)</div></div>', unsafe_allow_html=True)
-                col3.markdown(
-                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4a7</div>'
-                    f'<div class="metric-value">{round(data.get("water_avg_ml",0))}</div>'
-                    f'<div class="metric-label">Avg Water (ml)</div></div>', unsafe_allow_html=True)
+                # Stat cards with gradient text
+                st.markdown(f"""
+                <div class="admin-grid">
+                  <div class="stat-card rose">
+                    <div class="stat-icon">\U0001f4c5</div>
+                    <div class="stat-value">{data.get('entry_count', 0)}</div>
+                    <div class="stat-label">Days Tracked</div>
+                  </div>
+                  <div class="stat-card green">
+                    <div class="stat-icon">\U0001f3cb</div>
+                    <div class="stat-value">{data.get('exercise_total_minutes', 0)}</div>
+                    <div class="stat-label">Total Exercise (min)</div>
+                  </div>
+                  <div class="stat-card blue">
+                    <div class="stat-icon">\U0001f4a7</div>
+                    <div class="stat-value">{round(data.get('water_avg_ml', 0))}</div>
+                    <div class="stat-label">Avg Water (ml)</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
 
                 # Mood trend
                 mood_trend = data.get("mood_trend", [])
@@ -1357,7 +1694,7 @@ def _render_health_log() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_date:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Get / Delete by Date")
         lookup_date = st.date_input("\U0001f4c5 Date", value=date.today(), key="hl_lookup_date")
         col_get, col_del = st.columns(2)
@@ -1839,7 +2176,7 @@ _ADMIN_EMAILS = [
 
 
 def _render_admin() -> None:
-    st.markdown('<div class="aura-page-header"><h1>\U0001f511 Admin Dashboard</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="aura-page-header"><h1>\U0001f511 <span class="gradient-text">Admin Dashboard</span></h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1854,34 +2191,101 @@ def _render_admin() -> None:
     )
 
     with tab_stats:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Platform Overview")
         if st.button("\U0001f4ca Load Stats", width="stretch"):
             with st.spinner("Loading stats..."):
                 resp = _api_call("GET", "/admin/stats")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
-                col1, col2, col3 = st.columns(3)
-                col1.markdown(_metric_card("\U0001f465", str(data.get("users", 0)), "Users"), unsafe_allow_html=True)
-                col1.markdown(_metric_card("\U0001f4ac", str(data.get("conversations", 0)), "Conversations"), unsafe_allow_html=True)
-                col2.markdown(_metric_card("\U0001f4e8", str(data.get("messages", 0)), "Messages"), unsafe_allow_html=True)
-                col2.markdown(_metric_card("\U0001f52c", str(data.get("analyses", 0)), "Analyses"), unsafe_allow_html=True)
-                col3.markdown(_metric_card("\U0001f338", str(data.get("cycle_entries", 0)), "Cycle Entries"), unsafe_allow_html=True)
-                col3.markdown(_metric_card("\U0001f4c8", str(data.get("health_logs", 0)), "Health Logs"), unsafe_allow_html=True)
 
+                # Main stats grid
+                st.markdown(f"""
+                <div class="admin-grid">
+                  <div class="stat-card rose">
+                    <div class="stat-icon">\U0001f465</div>
+                    <div class="stat-value">{data.get('users', 0)}</div>
+                    <div class="stat-label">Users</div>
+                  </div>
+                  <div class="stat-card purple">
+                    <div class="stat-icon">\U0001f4ac</div>
+                    <div class="stat-value">{data.get('conversations', 0)}</div>
+                    <div class="stat-label">Conversations</div>
+                  </div>
+                  <div class="stat-card blue">
+                    <div class="stat-icon">\U0001f4e8</div>
+                    <div class="stat-value">{data.get('messages', 0)}</div>
+                    <div class="stat-label">Messages</div>
+                  </div>
+                </div>
+                <div class="admin-grid">
+                  <div class="stat-card green">
+                    <div class="stat-icon">\U0001f52c</div>
+                    <div class="stat-value">{data.get('analyses', 0)}</div>
+                    <div class="stat-label">Analyses</div>
+                  </div>
+                  <div class="stat-card rose">
+                    <div class="stat-icon">\U0001f338</div>
+                    <div class="stat-value">{data.get('cycle_entries', 0)}</div>
+                    <div class="stat-label">Cycle Entries</div>
+                  </div>
+                  <div class="stat-card gold">
+                    <div class="stat-icon">\U0001f4c8</div>
+                    <div class="stat-value">{data.get('health_logs', 0)}</div>
+                    <div class="stat-label">Health Logs</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # AI Interactions as bar chart
                 interactions = data.get("ai_interactions", {})
-                st.markdown('<div class="aura-section-title">AI Interactions</div>', unsafe_allow_html=True)
-                ic1, ic2, ic3, ic4 = st.columns(4)
-                ic1.markdown(_metric_card("\U0001f4ac", str(interactions.get("chat", 0)), "Chat"), unsafe_allow_html=True)
-                ic2.markdown(_metric_card("\U0001f9b4", str(interactions.get("skin", 0)), "Skin"), unsafe_allow_html=True)
-                ic3.markdown(_metric_card("\U0001f4c4", str(interactions.get("report", 0)), "Report"), unsafe_allow_html=True)
-                ic4.markdown(_metric_card("\U0001f4ca", str(interactions.get("total", 0)), "Total"), unsafe_allow_html=True)
+                total_int = interactions.get("total", 0)
+                max_val = max(interactions.get("chat", 0), interactions.get("skin", 0),
+                              interactions.get("report", 0), 1)
+                chat_pct = min(int(interactions.get("chat", 0) / max_val * 100), 100) if max_val else 0
+                skin_pct = min(int(interactions.get("skin", 0) / max_val * 100), 100) if max_val else 0
+                report_pct = min(int(interactions.get("report", 0) / max_val * 100), 100) if max_val else 0
 
+                st.markdown('<div class="aura-section-title">AI Interactions</div>', unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="interaction-bar-wrap">
+                  <div class="interaction-bar-label">\U0001f4ac Chat — {interactions.get('chat', 0)}</div>
+                  <div class="interaction-bar"><div class="interaction-bar-fill chat" style="width:{chat_pct}%">{interactions.get('chat', 0)}</div></div>
+                </div>
+                <div class="interaction-bar-wrap">
+                  <div class="interaction-bar-label">\U0001f9b4 Skin — {interactions.get('skin', 0)}</div>
+                  <div class="interaction-bar"><div class="interaction-bar-fill skin" style="width:{skin_pct}%">{interactions.get('skin', 0)}</div></div>
+                </div>
+                <div class="interaction-bar-wrap">
+                  <div class="interaction-bar-label">\U0001f4c4 Report — {interactions.get('report', 0)}</div>
+                  <div class="interaction-bar"><div class="interaction-bar-fill report" style="width:{report_pct}%">{interactions.get('report', 0)}</div></div>
+                </div>
+                <div style="text-align:center;margin-top:12px">
+                  <div class="stat-card total" style="display:inline-block;padding:12px 24px">
+                    <div class="stat-icon">\U0001f4ca</div>
+                    <div class="stat-value">{total_int}</div>
+                    <div class="stat-label">Total Interactions</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Subscriptions
                 subs = data.get("subscriptions", {})
                 st.markdown('<div class="aura-section-title">Subscriptions</div>', unsafe_allow_html=True)
-                sc1, sc2 = st.columns(2)
-                sc1.markdown(_metric_card("\U0001f193", str(subs.get("free", 0)), "Free"), unsafe_allow_html=True)
-                sc2.markdown(_metric_card("\u2b50", str(subs.get("premium", 0)), "Premium"), unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="admin-grid" style="grid-template-columns: repeat(2, 1fr);">
+                  <div class="stat-card purple">
+                    <div class="stat-icon">\U0001f193</div>
+                    <div class="stat-value">{subs.get('free', 0)}</div>
+                    <div class="stat-label">Free</div>
+                  </div>
+                  <div class="stat-card gold">
+                    <div class="stat-icon">\u2b50</div>
+                    <div class="stat-value">{subs.get('premium', 0)}</div>
+                    <div class="stat-label">Premium</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
 
                 with st.expander("Raw JSON"):
                     st.json(data)
@@ -1890,9 +2294,8 @@ def _render_admin() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_users:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Users")
-        col_search = st.columns(1)
         search_email = st.text_input("\U0001f50d Search by email", key="admin_user_search")
         page_num = st.number_input("Page", min_value=1, value=1, key="admin_users_page")
         page_limit = st.number_input("Limit", min_value=1, max_value=100, value=20, key="admin_users_limit")
@@ -1907,11 +2310,24 @@ def _render_admin() -> None:
                 data = resp.json()
                 users = data.get("users", [])
                 if users:
-                    st.write(f"Showing {len(users)} users (Page {data.get('page', 1)})")
+                    st.caption(f"Showing {len(users)} users (Page {data.get('page', 1)})")
+                    users_html = ""
                     for u in users:
-                        with st.expander(f"{u.get('email', 'Unknown')}"):
-                            for k, v in u.items():
-                                st.markdown(f"**{k}:** {v}")
+                        email = u.get("email", "Unknown")
+                        tier = u.get("subscription_tier", u.get("tier", "free"))
+                        created = u.get("created_at", "?")[:10] if u.get("created_at") else "?"
+                        tier_cls = "purple" if tier == "premium" else "rose"
+                        users_html += f"""
+                        <div class="user-card">
+                          <div class="user-email">\U0001f464 {email}</div>
+                          <div class="user-meta">
+                            <span class="pill-badge {tier_cls}">{tier.upper()}</span>
+                            &nbsp;\U0001f4c5 {created}
+                          </div>
+                        </div>"""
+                    st.markdown(users_html, unsafe_allow_html=True)
+                    with st.expander("Raw JSON"):
+                        st.json(data)
                 else:
                     st.markdown('<div class="aura-empty">\U0001f464 No users found.</div>', unsafe_allow_html=True)
             else:
@@ -1919,7 +2335,7 @@ def _render_admin() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_interactions:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("AI Interaction Analytics")
         days = st.number_input("Days to look back", min_value=1, max_value=365, value=30, key="admin_interactions_days")
         if st.button("\U0001f4c8 Load Interactions", width="stretch"):
@@ -1929,12 +2345,25 @@ def _render_admin() -> None:
                 data = resp.json()
                 daily = data.get("daily", [])
                 if daily:
-                    st.write(f"Last {days} days of interactions ({len(daily)} records)")
+                    st.caption(f"Last {days} days of interactions ({len(daily)} records)")
+
+                    # Compute max for bar widths
+                    max_count = max((e.get("count", 0) for e in daily), default=1)
+                    entries_html = ""
                     for entry in daily:
                         date_str = entry.get("date", "")
                         itype = entry.get("interaction_type", "")
                         count = entry.get("count", 0)
-                        st.markdown(f"**{date_str}** — {itype}: {count}")
+                        pct = min(int(count / max_count * 100), 100) if max_count else 0
+                        bar_cls = {"chat": "chat", "skin": "skin", "report": "report"}.get(itype, "total")
+                        pill_cls = {"chat": "purple", "skin": "blue", "report": "green"}.get(itype, "gold")
+                        entries_html += f"""
+                        <div class="data-row">
+                          <div class="data-key">{date_str} <span class="pill-badge {pill_cls}">{itype}</span></div>
+                          <div class="data-value">{count}</div>
+                        </div>"""
+
+                    st.markdown(entries_html, unsafe_allow_html=True)
                 else:
                     st.markdown('<div class="aura-empty">\U0001f4ca No interaction data found for this period.</div>', unsafe_allow_html=True)
                 with st.expander("Raw JSON"):
@@ -1944,9 +2373,9 @@ def _render_admin() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_data:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
-        st.subheader("\u26a0 Data Management")
-        st.warning("This will permanently delete ALL application data for a user. Their account and subscription will NOT be deleted.")
+        st.markdown('<div class="danger-zone animate-in">', unsafe_allow_html=True)
+        st.markdown('<div class="danger-title">\u26a0 Data Management</div>', unsafe_allow_html=True)
+        st.markdown('<div class="danger-text">This will permanently delete ALL application data for a user. Their account and subscription will NOT be deleted.</div>', unsafe_allow_html=True)
 
         user_id_input = st.text_input("User ID to delete data for", key="admin_delete_user_id")
         if st.button("\U0001f5d1 Delete All User Data", type="primary", width="stretch"):
