@@ -39,7 +39,6 @@ NAV_ITEMS = [
     ("\U0001f512", "Auth"),
     ("\U0001f464", "Profile & Me"),
     ("\U0001f4ac", "Chat"),
-    ("\U0001f52c", "Analysis"),
     ("\U0001f4c8", "Health Log"),
     ("\U0001f4b3", "Subscriptions"),
     ("\U0001f3ab", "Tickets"),
@@ -897,88 +896,6 @@ def _render_chat() -> None:
 
 
 
-def _render_analysis() -> None:
-    st.header("\U0001f52c Analysis History")
-    if not _ensure_auth():
-        return
-
-    st.info("\U0001f4ac Skin and report analysis is now done in the **Chat** tab. Attach an image or PDF to any message and the AI will analyze it inline.")
-
-    tab_history, tab_upload_url = st.tabs(["History", "Upload URL (API)"])
-
-    with tab_history:
-        st.subheader("Past Analyses")
-        page_num = st.number_input("\U0001f4c3 Page", min_value=1, value=1, key="hist_page")
-        page_limit = st.number_input("Limit", min_value=1, max_value=50, value=10, key="hist_limit")
-        if st.button("\U0001f4da Load History", width="stretch"):
-            resp = _api_call("GET", "/analysis/history", params={"page": page_num, "limit": page_limit})
-            if 200 <= resp.status_code < 300:
-                data = resp.json()
-                analyses = data.get("analyses", [])
-                if analyses:
-                    for a in analyses:
-                        a_type = a.get("analysis_type", "?")
-                        a_status = a.get("status", "?")
-                        a_date = (a.get("created_at") or "")[:10]
-                        st.markdown(
-                            '<div class="aura-card">' +
-                            _analysis_status_badge(a_status) + " " +
-                            _badge_html(a_type.upper(), "badge-rose") + " " +
-                            _badge_html(a_date, "badge-info") +
-                            '</div>',
-                            unsafe_allow_html=True,
-                        )
-                        result = a.get("result")
-                        if result and isinstance(result, dict):
-                            with st.expander("\U0001f52c Results"):
-                                for k, v in result.items():
-                                    if isinstance(v, list):
-                                        st.markdown(f"**{k.replace('_', ' ').title()}:**")
-                                        for item in v:
-                                            if isinstance(item, dict):
-                                                for ik, iv in item.items():
-                                                    st.markdown(f"- **{ik}:** {iv}")
-                                            else:
-                                                st.markdown(f"- {item}")
-                                    else:
-                                        st.markdown(f"**{k.replace('_', ' ').title()}:** {v}")
-                    with st.expander("Raw JSON"):
-                        st.json(data)
-                else:
-                    st.info("No analyses yet. Start a chat with an image or PDF to get your first analysis!")
-            else:
-                _display_response_rich(resp)
-
-    with tab_upload_url:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
-        st.subheader("Generate Upload URL")
-        st.caption("Use this to get a signed URL for direct file upload to Supabase Storage. Then attach the file in the Chat tab.")
-        with st.form("upload_url_form"):
-            file_name = st.text_input("\U0001f4c4 File Name", value="test.jpg")
-            content_type = st.selectbox("\U0001f4f7 Content Type", [
-                "image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"
-            ])
-            analysis_type = st.selectbox("\U0001f9ea Analysis Type", ["skin", "report"])
-            upload_submitted = st.form_submit_button("\U0001f517 Get Upload URL")
-
-        if upload_submitted:
-            resp = _api_call("POST", "/analysis/upload-url", json_data={
-                "file_name": file_name, "content_type": content_type, "analysis_type": analysis_type,
-            })
-            if 200 <= resp.status_code < 300:
-                data = resp.json()
-                st.success("Upload URL generated!")
-                st.code(data.get("upload_url", ""), language="http")
-                st.markdown(f'**File Path:** `{data.get("file_path", "")}`')
-                st.caption("Copy the file path and use it in the Chat tab to attach the file.")
-                st.session_state["analysis_file_path"] = data.get("file_path", "")
-                with st.expander("Raw JSON"):
-                    st.json(data)
-            else:
-                _display_response_rich(resp)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
 # ---------------------------------------------------------------------------
 # Health Log Page
 # ---------------------------------------------------------------------------
@@ -1438,7 +1355,6 @@ PAGES = {
     "Auth": _render_auth,
     "Profile & Me": _render_profile,
     "Chat": _render_chat,
-    "Analysis": _render_analysis,
     "Health Log": _render_health_log,
     "Subscriptions": _render_subscriptions,
     "Tickets": _render_tickets,
