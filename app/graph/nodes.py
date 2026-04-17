@@ -75,25 +75,28 @@ async def skin_analyzer(state: ConversationState) -> dict:
 
         # Store analysis in database
         analysis_resp = (
-            supabase_admin
-            .table("analyses")
-            .insert({
-                "user_id": user_id,
-                "analysis_type": "skin",
-                "file_path": current_file["file_path"],
-                "language": language,
-                "status": "completed",
-                "result": result,
-            })
+            supabase_admin.table("analyses")
+            .insert(
+                {
+                    "user_id": user_id,
+                    "analysis_type": "skin",
+                    "file_path": current_file["file_path"],
+                    "language": language,
+                    "status": "completed",
+                    "result": result,
+                }
+            )
             .execute()
         )
         analysis_id = analysis_resp.data[0]["id"]
 
         # Record quota usage
-        supabase_admin.table("ai_interactions").insert({
-            "user_id": user_id,
-            "interaction_type": "skin",
-        }).execute()
+        supabase_admin.table("ai_interactions").insert(
+            {
+                "user_id": user_id,
+                "interaction_type": "skin",
+            }
+        ).execute()
 
         # Build response text from analysis
         response_text = _format_skin_response(result, language)
@@ -109,7 +112,9 @@ async def skin_analyzer(state: ConversationState) -> dict:
         logger.error(f"Skin analysis failed: {e}")
         return {
             "error": f"Skin analysis failed: {str(e)}",
-            "response_chunks": ["I'm sorry, I couldn't analyze the image. Please try again."],
+            "response_chunks": [
+                "I'm sorry, I couldn't analyze the image. Please try again."
+            ],
         }
 
 
@@ -135,25 +140,28 @@ async def report_analyzer(state: ConversationState) -> dict:
 
         # Store analysis in database
         analysis_resp = (
-            supabase_admin
-            .table("analyses")
-            .insert({
-                "user_id": user_id,
-                "analysis_type": "report",
-                "file_path": current_file["file_path"],
-                "language": language,
-                "status": "completed",
-                "result": result,
-            })
+            supabase_admin.table("analyses")
+            .insert(
+                {
+                    "user_id": user_id,
+                    "analysis_type": "report",
+                    "file_path": current_file["file_path"],
+                    "language": language,
+                    "status": "completed",
+                    "result": result,
+                }
+            )
             .execute()
         )
         analysis_id = analysis_resp.data[0]["id"]
 
         # Record quota usage
-        supabase_admin.table("ai_interactions").insert({
-            "user_id": user_id,
-            "interaction_type": "report",
-        }).execute()
+        supabase_admin.table("ai_interactions").insert(
+            {
+                "user_id": user_id,
+                "interaction_type": "report",
+            }
+        ).execute()
 
         # Build response text from analysis
         response_text = _format_report_response(result, language)
@@ -169,7 +177,9 @@ async def report_analyzer(state: ConversationState) -> dict:
         logger.error(f"Report analysis failed: {e}")
         return {
             "error": f"Report analysis failed: {str(e)}",
-            "response_chunks": ["I'm sorry, I couldn't analyze the report. Please try again."],
+            "response_chunks": [
+                "I'm sorry, I couldn't analyze the report. Please try again."
+            ],
         }
 
 
@@ -185,7 +195,9 @@ async def chat_responder(state: ConversationState) -> dict:
     # Build system prompt with context
     system_prompt = HEALTH_SYSTEM_PROMPT
     if summary_context:
-        system_prompt += "\n\n" + MEMORY_CONTEXT_TEMPLATE.format(summary=summary_context)
+        system_prompt += "\n\n" + MEMORY_CONTEXT_TEMPLATE.format(
+            summary=summary_context
+        )
     if last_analysis and last_analysis_type:
         system_prompt += "\n\n" + ANALYSIS_FOLLOWUP_TEMPLATE.format(
             analysis_type=last_analysis_type,
@@ -203,7 +215,9 @@ async def chat_responder(state: ConversationState) -> dict:
 
     # Stream response and collect chunks
     chunks = []
-    async for chunk in stream_chat_response(gemini_messages, language, system_prompt_override=system_prompt):
+    async for chunk in stream_chat_response(
+        gemini_messages, language, system_prompt_override=system_prompt
+    ):
         chunks.append(chunk)
 
     return {"response_chunks": chunks}
@@ -215,6 +229,7 @@ def response_formatter(state: ConversationState) -> dict:
 
 
 # --- Helper functions ---
+
 
 def _format_skin_response(result: dict, language: str) -> str:
     """Format skin analysis result as a readable text response."""
@@ -234,7 +249,9 @@ def _format_skin_response(result: dict, language: str) -> str:
         for step in result["skincare_routine"]:
             lines.append(f"- {step}")
     if result.get("see_doctor"):
-        lines.append(f"\n**See a doctor:** Yes — {result.get('doctor_reason', 'Recommended')}")
+        lines.append(
+            f"\n**See a doctor:** Yes — {result.get('doctor_reason', 'Recommended')}"
+        )
     if result.get("disclaimer"):
         lines.append(f"\n*{result['disclaimer']}*")
     return "\n".join(lines) if lines else json.dumps(result, indent=2)
@@ -253,8 +270,12 @@ def _format_report_response(result: dict, language: str) -> str:
             unit = f.get("unit", "")
             status = f.get("status", "")
             normal = f.get("normal_range", "")
-            status_icon = "✅" if status == "normal" else "⚠️" if status == "abnormal" else "🔍"
-            lines.append(f"- {status_icon} {name}: {value} {unit} (Normal: {normal}) — {status}")
+            status_icon = (
+                "✅" if status == "normal" else "⚠️" if status == "abnormal" else "🔍"
+            )
+            lines.append(
+                f"- {status_icon} {name}: {value} {unit} (Normal: {normal}) — {status}"
+            )
     if result.get("abnormal_flags"):
         lines.append(f"\n**Abnormal findings:** {', '.join(result['abnormal_flags'])}")
     if result.get("next_steps"):

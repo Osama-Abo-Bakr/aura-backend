@@ -38,8 +38,7 @@ async def get_analysis_history(
     offset = (page - 1) * limit
 
     resp = (
-        supabase_admin
-        .table("analyses")
+        supabase_admin.table("analyses")
         .select("id, analysis_type, status, created_at, result")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
