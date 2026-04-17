@@ -38,9 +38,9 @@ Backend API for **Aura Health** — an AI health companion for women in MENA. Po
 
 Aura is a bilingual (Arabic/English) health companion that provides:
 
-- **AI chat** — Gemini-powered conversational health guidance
-- **Skin analysis** — Upload a photo, get AI-powered skin findings with confidence scores
-- **Medical report analysis** — Upload a report, get biomarker explanations
+- **Conversational AI chat** — Gemini-powered health guidance with file attachments (skin images, medical reports) analyzed inline via LangGraph
+- **Skin analysis** — Upload a skin photo in chat, get AI-powered findings with severity and recommendations
+- **Medical report analysis** — Upload a PDF report in chat, get biomarker explanations and next steps
 - **Health logging** — Daily mood, energy, sleep, hydration, exercise, symptom tracking
 - **Wellness plans** — AI-generated personalized 7-day wellness plans (premium)
 - **Support tickets** — In-app support with status tracking
@@ -55,8 +55,9 @@ Aura is a bilingual (Arabic/English) health companion that provides:
 | Framework | FastAPI 0.115.14 |
 | Database | Supabase (Postgres + Auth + Storage) |
 | AI | Google Gemini 2.5 Flash |
+| Conversation Graph | LangGraph + LangChain Core |
 | Billing | Stripe Checkout + Webhooks |
-| Task Queue | Celery + Redis |
+| Task Queue | Celery + Redis (reserved for future use) |
 | HTTP Client | httpx + tenacity (retry/timeout) |
 | Rate Limiting | slowapi (Redis-backed) |
 | Logging | structlog (JSON in production) |
@@ -99,16 +100,14 @@ cp .env.example .env
 #   supabase/migrations/002_add_analysis_status.sql
 #   supabase/migrations/003_storage_policies.sql
 #   supabase/migrations/004_tickets.sql
+#   supabase/migrations/005_add_message_file_columns.sql
 
-# 6. Start Redis (required for rate limiting + Celery)
+# 6. Start Redis (required for rate limiting)
 docker compose up redis -d
 # Or use any Redis instance and set REDIS_URL in .env
 
 # 7. Start the API server
 uvicorn app.main:app --reload --port 8000
-
-# 8. (Optional) Start the Celery worker for background analysis tasks
-celery -A app.tasks.celery_app worker -l info -Q vision,default -c 2
 ```
 
 The API will be available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs` (disabled in production).
@@ -144,8 +143,8 @@ aura-backend/
 │   ├── api/v1/
 │   │   ├── __init__.py             # Router aggregation (/api/v1 prefix)
 │   │   ├── auth.py                 # Auth endpoints
-│   │   ├── analysis.py             # Skin/report analysis + upload
-│   │   ├── chat.py                 # Chat SSE + conversations
+│   │   ├── analysis.py             # Upload URL generation + history
+│   │   ├── chat.py                 # Unified chat endpoint (SSE + file attachments)
 │   │   ├── health_log.py           # Health log CRUD + summary
 │   │   ├── subscriptions.py        # Stripe checkout + webhooks
 │   │   ├── tickets.py              # Support tickets + state machine
@@ -158,25 +157,33 @@ aura-backend/
 │   │   └── security.py             # JWT verification (ES256 + HS256)
 │   ├── db/
 │   │   └── supabase.py             # Supabase admin client singleton
+│   ├── graph/
+│   │   ├── __init__.py             # Exports conversation_graph, ConversationState
+│   │   ├── state.py               # ConversationState + FileAttachment TypedDicts
+│   │   ├── prompts.py              # System prompts for each node
+│   │   ├── nodes.py                # LangGraph node functions (router, analyzers, chat)
+│   │   └── graph.py                # LangGraph StateGraph wiring
 │   ├── models/
-│   │   ├── analysis.py             # Upload, skin, report, history models
-│   │   ├── chat.py                 # Chat message + conversation models
+│   │   ├── analysis.py             # Upload URL + history models
+│   │   ├── chat.py                 # Chat request, SSE event models
 │   │   ├── ticket.py               # Ticket CRUD + status models
 │   │   ├── user.py                 # Profile, subscription, auth models
 │   │   └── wellness.py             # Health log + wellness plan models
 │   ├── services/
 │   │   ├── auth.py                 # Supabase Auth REST wrapper (httpx + retry)
-│   │   ├── gemini.py               # Gemini AI: chat, vision, wellness
-│   │   ├── storage.py              # Supabase Storage signed URLs
+│   │   ├── gemini.py               # Gemini AI: chat, skin vision, report vision, wellness
+│   │   ├── memory.py               # Ambient context builder (analyses + conversation titles)
+│   │   ├── storage.py              # Supabase Storage signed URLs + file download
 │   │   └── stripe_svc.py           # Stripe checkout + webhook handling
 │   └── tasks/
 │       ├── celery_app.py           # Celery instance config
-│       └── vision_tasks.py         # Async skin + report analysis tasks
+│       └── vision_tasks.py         # Reserved for future background tasks
 ├── supabase/migrations/
 │   ├── 001_initial_schema.sql      # All core tables + RLS
 │   ├── 002_add_analysis_status.sql # Analysis status column
 │   ├── 003_storage_policies.sql    # Storage bucket RLS
-│   └── 004_tickets.sql             # Tickets table + RLS
+│   ├── 004_tickets.sql             # Tickets table + RLS
+│   └── 005_add_message_file_columns.sql  # file_path, file_type, analysis_id on messages
 ├── tests/
 │   ├── conftest.py                 # Mocked Supabase client, fixtures
 │   ├── test_auth.py                # AuthService unit tests
@@ -185,10 +192,13 @@ aura-backend/
 │   ├── test_health_log.py          # Health log summary unit tests
 │   ├── test_middleware.py          # Middleware unit tests
 │   ├── test_security.py            # JWT verification tests
-│   ├── test_analysis.py           # Analysis endpoint tests
+│   ├── test_analysis.py            # Analysis endpoint tests
+│   ├── test_graph.py               # LangGraph router + response formatter tests
+│   ├── test_memory.py              # Memory service tests
+│   ├── test_integration_chat.py    # Chat request models, SSE events, routing logic
 │   └── test_regression_bugs.py    # Regression tests for past bugs
 ├── streamlit_app/
-│   ├── app.py                     # Interactive test dashboard (all API endpoints)
+│   ├── app.py                     # Interactive test dashboard (chat with file upload)
 │   ├── Dockerfile                 # Streamlit container
 │   └── requirements.txt           # Dashboard-specific deps
 ├── .github/
@@ -278,24 +288,34 @@ All endpoints are mounted under `/api/v1`. Authenticated endpoints require a `Au
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/chat/message` | Yes | Send a message, receive SSE-streamed AI response |
+| `POST` | `/chat/message` | Yes | Send a message (with optional file attachment), receive SSE-streamed AI response |
 | `GET` | `/chat/conversations` | Yes | List user's 20 most recent conversations |
 | `GET` | `/chat/conversations/{id}/messages` | Yes | Get all messages in a conversation |
+| `GET` | `/chat/conversations/{id}/analysis` | Yes | Get the latest analysis result in a conversation |
 | `DELETE` | `/chat/conversations/{id}` | Yes | Delete a conversation and its messages |
 
-Chat messages consume the `chat` quota (10/month free, unlimited premium). Responses are streamed as Server-Sent Events (SSE).
+Chat messages are processed through a **LangGraph state machine** that routes based on content type:
+- **Text-only** → chat responder with ambient memory context
+- **Image attachment** → skin analyzer (Gemini Vision)
+- **PDF attachment** → report analyzer (Gemini Vision)
+
+Responses are streamed as Server-Sent Events (SSE) with structured event types:
+- `content` — text chunks from the AI response
+- `analysis_meta` — analysis type and ID when a file was analyzed
+- `quota_error` — quota exceeded notification
+- `analysis_error` — error during file analysis
+- `[DONE]` — stream terminator
+
+**File upload flow:** Clients first call `POST /analysis/upload-url` to get a signed Supabase Storage URL, upload the file directly, then include the `file_path` and `file_type` in the chat message request.
 
 ### Analysis
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/analysis/upload-url` | Yes | Generate a signed Supabase Storage upload URL |
-| `POST` | `/analysis/skin` | Yes | Dispatch async skin analysis (Celery task) |
-| `POST` | `/analysis/report` | Yes | Dispatch async medical report analysis |
-| `GET` | `/analysis/{id}/status` | Yes | Poll analysis status/result |
-| `GET` | `/analysis/history` | Yes | Paginated analysis history (`?page=1&limit=20`) |
+| `GET` | `/analysis/history` | Yes | Paginated analysis history (`?page=1&limit=10`) |
 
-Skin analysis consumes `skin` quota (3/month free). Report analysis consumes `report` quota (1/month free).
+Analysis is now performed inline within the chat endpoint via LangGraph. The standalone `/analysis/skin`, `/analysis/report`, and `/analysis/{id}/status` endpoints have been removed.
 
 ### Health Log
 
@@ -412,16 +432,9 @@ Quotas are tracked in the `ai_interactions` table and checked via the `check_quo
 
 ## Background Tasks
 
-Celery handles async processing for AI analysis tasks:
+Celery is configured and available for future background tasks. Skin and report analysis now run inline via the LangGraph conversation graph (no Celery needed for AI analysis).
 
-| Task | Queue | Description |
-|------|-------|-------------|
-| `process_skin_analysis` | `vision` | Downloads image from Storage, calls Gemini Vision, writes result |
-| `process_report_analysis` | `vision` | Downloads report from Storage, calls Gemini Vision, writes result |
-
-Both tasks retry up to 3 times on failure and record quota usage on success.
-
-Start the worker:
+Start the worker if needed for future tasks:
 
 ```bash
 celery -A app.tasks.celery_app worker -l info -Q vision,default -c 2
@@ -439,6 +452,7 @@ Run these SQL files in order on your Supabase project (via the SQL Editor or `su
 | 002 | `add_analysis_status.sql` | Adds `status` column to analyses table |
 | 003 | `storage_policies.sql` | RLS policies for Supabase Storage `analyses` bucket |
 | 004 | `tickets.sql` | Tickets table + RLS + auto-update trigger |
+| 005 | `add_message_file_columns.sql` | Adds `file_path`, `file_type`, `analysis_id` columns to messages table |
 
 All tables use Row Level Security (RLS) — users can only access their own data.
 
@@ -466,7 +480,7 @@ The test suite uses:
 - **Mocked Gemini** — `google.generativeai.configure` is patched to prevent real API calls
 - **Dependency overrides** — `get_current_user` is overridden in endpoint tests to inject a fake user
 - **Service mocking** — `AuthService` and `supabase_admin` are mocked per-test with `unittest.mock.patch`
-- **64 tests** covering auth, tickets, health log, middleware, security, analysis, and regression bugs
+- **92 tests** covering auth, tickets, health log, middleware, security, analysis, LangGraph routing, memory, chat integration, and regression bugs
 
 ---
 
@@ -553,7 +567,7 @@ For platforms like Railway that support Procfiles:
 
 ```
 web: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers $WEB_CONCURRENCY
-worker: celery -A app.tasks.celery_app worker -Q vision,default -c 2 -l info
+worker: celery -A app.tasks.celery_app worker -Q default -c 2 -l info
 ```
 
 ---
@@ -602,7 +616,10 @@ Rate limit errors (429) include upgrade information:
 | **Supabase Auth REST API** | Backend calls Supabase Auth via httpx (not the Python client) for full control over retries, timeouts, and error mapping |
 | **Service role + RLS** | Backend uses the service role key to bypass RLS, then scopes all queries by `user_id` — avoids per-request client initialization |
 | **ES256 + HS256 fallback** | JWT verification tries JWKS/ES256 first, falls back to HS256 — supports both Supabase key types |
-| **Celery for AI tasks** | Skin and report analysis are long-running (5-30s) — Celery prevents request timeouts |
+| **LangGraph for conversation routing** | A deterministic state machine routes messages to chat, skin analysis, or report analysis nodes based on file type — keeps logic explicit and testable |
+| **Inline analysis via LangGraph** | Skin and report analysis run synchronously in the request via LangGraph nodes (no Celery) — simpler architecture, immediate SSE response, easier error handling |
+| **Ambient memory injection** | Before responding, the graph fetches the user's last 3 analyses and most recent conversation title as context — gives the AI awareness without explicit history management |
+| **SSE streaming with typed events** | Structured event types (`content`, `analysis_meta`, `quota_error`, `analysis_error`, `[DONE]`) let the frontend render analysis cards and errors distinctly from text |
 | **slowapi rate limiting** | Redis-backed rate limiting prevents abuse while keeping the architecture stateless |
 | **Quota system** | Simple monthly counter in `ai_interactions` — scales well and is easy to audit |
 | **httpx + tenacity retry** | Network calls to Supabase Auth retry on transport errors only (not HTTP errors) with exponential backoff |
