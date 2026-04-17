@@ -226,13 +226,23 @@ async def get_messages(conversation_id: str, user: dict = Depends(get_current_us
     if not conv_resp.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    resp = (
-        supabase_admin.table("messages")
-        .select("id, role, content, created_at, file_path, file_type, analysis_id")
-        .eq("conversation_id", conversation_id)
-        .order("created_at", desc=False)
-        .execute()
-    )
+    try:
+        resp = (
+            supabase_admin.table("messages")
+            .select("id, role, content, created_at, file_path, file_type, analysis_id")
+            .eq("conversation_id", conversation_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+    except Exception:
+        # Fallback: migration 005 may not be applied yet
+        resp = (
+            supabase_admin.table("messages")
+            .select("id, role, content, created_at")
+            .eq("conversation_id", conversation_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
     return resp.data
 
 

@@ -19,12 +19,11 @@ async def create_upload_url(
 ):
     """Generate a signed URL for uploading a file to Supabase Storage."""
     user_id = user["sub"]
-    result = await generate_upload_url(
+    return generate_upload_url(
         user_id=user_id,
         file_name=request.file_name,
         content_type=request.content_type,
     )
-    return result
 
 
 @router.get("/history")
