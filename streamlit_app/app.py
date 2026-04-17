@@ -657,7 +657,8 @@ def _render_auth() -> None:
             if not refresh_token:
                 st.warning("No refresh token available.")
             else:
-                resp = _api_call("POST", "/auth/refresh", json_data={"refresh_token": refresh_token})
+                with st.spinner("Refreshing token..."):
+                    resp = _api_call("POST", "/auth/refresh", json_data={"refresh_token": refresh_token})
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.session_state["access_token"] = data["access_token"]
@@ -677,7 +678,7 @@ def _render_auth() -> None:
             st.text_input("Access Token", value=st.session_state["access_token"], disabled=True, key="session_access_token")
             st.text_input("Refresh Token", value=st.session_state.get("refresh_token", ""), disabled=True, key="session_refresh_token")
     else:
-        st.info("No active session. Log in above.")
+        st.markdown('<div class="aura-empty">\U0001f512 No active session.<br>Log in above to get started.</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -694,7 +695,8 @@ def _render_profile() -> None:
 
     with tab_me:
         if st.button("\U0001f50d Fetch /me", width="stretch"):
-            resp = _api_call("GET", "/me")
+            with st.spinner("Loading profile..."):
+                resp = _api_call("GET", "/me")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 profile = data.get("profile") or {}
@@ -821,7 +823,7 @@ def _render_chat() -> None:
             if uploaded_chat_file.type and uploaded_chat_file.type.startswith("image/"):
                 st.image(uploaded_chat_file, caption=uploaded_chat_file.name, width="stretch")
             else:
-                st.info(f"\U0001f4c4 {uploaded_chat_file.name} ({uploaded_chat_file.size:,} bytes)")
+                st.markdown(f'<div class="aura-empty">\U0001f4c4 {uploaded_chat_file.name} ({uploaded_chat_file.size:,} bytes)</div>', unsafe_allow_html=True)
 
         # --- Message input ---
         chat_msg = st.text_area("\u270f Message", height=100)
@@ -979,11 +981,11 @@ def _render_chat() -> None:
                                             else:
                                                 st.markdown(f"**{k.replace('_', ' ').title()}:** {v}")
                                 elif status in ("pending", "processing"):
-                                    st.info("Analysis is still processing. Check the Analysis tab for results later.")
+                                    st.markdown('<div class="aura-empty">\u23f3 Analysis is still processing.<br>Check the Analysis tab for results later.</div>', unsafe_allow_html=True)
                             elif analysis_resp.status_code == 404:
-                                st.info("Analysis results not yet available. Check the Analysis tab later.")
+                                st.markdown('<div class="aura-empty">\U0001f52c Analysis results not yet available.<br>Check the Analysis tab later.</div>', unsafe_allow_html=True)
                 elif not error_info and not response_text:
-                    st.warning("No response received from the server.")
+                    st.markdown('<div class="aura-empty">\u26a0 No response received from the server.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_convos:
@@ -991,7 +993,8 @@ def _render_chat() -> None:
         col1, col2 = st.columns([3, 1])
         with col2:
             if st.button("\U0001f504 Refresh", width="stretch"):
-                resp = _api_call("GET", "/chat/conversations")
+                with st.spinner("Loading conversations..."):
+                    resp = _api_call("GET", "/chat/conversations")
                 if 200 <= resp.status_code < 300:
                     st.session_state["chat_convos"] = resp.json()
 
@@ -1012,7 +1015,8 @@ def _render_chat() -> None:
                     col_v, col_d = st.columns(2)
                     with col_v:
                         if st.button("\U0001f441 View", key=f"view_{c['id']}"):
-                            resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
+                            with st.spinner("Loading messages..."):
+                                resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
                             if 200 <= resp.status_code < 300:
                                 msgs = resp.json()
                                 for m in msgs:
@@ -1027,14 +1031,15 @@ def _render_chat() -> None:
                                 _display_response_rich(resp)
                     with col_d:
                         if st.button("\U0001f5d1 Delete", key=f"del_{c['id']}"):
-                            resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
+                            with st.spinner("Deleting..."):
+                                resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
                             if 200 <= resp.status_code < 300:
                                 st.success("Deleted!")
                                 st.session_state.pop("chat_convos", None)
                             else:
                                 _display_response_rich(resp)
         else:
-            st.info("No conversations yet. Click Refresh to load.")
+            st.markdown('<div class="aura-empty">\U0001f4ac No conversations yet.<br>Click Refresh to load.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -1094,7 +1099,8 @@ def _render_health_log() -> None:
         st.subheader("Recent Logs")
         hl_days = st.number_input("\U0001f4c5 Days", min_value=1, max_value=365, value=30, key="hl_days")
         if st.button("\U0001f4da Load Logs", width="stretch"):
-            resp = _api_call("GET", "/health-log", params={"days": hl_days})
+            with st.spinner("Loading logs..."):
+                resp = _api_call("GET", "/health-log", params={"days": hl_days})
             _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1103,7 +1109,8 @@ def _render_health_log() -> None:
         st.subheader("\U0001f4ca Health Summary & Charts")
         summary_days = st.slider("\U0001f4c5 Days", min_value=7, max_value=90, value=30, key="summary_days")
         if st.button("\U0001f504 Load Summary", width="stretch"):
-            resp = _api_call("GET", "/health-log/summary", params={"days": summary_days})
+            with st.spinner("Loading summary..."):
+                resp = _api_call("GET", "/health-log/summary", params={"days": summary_days})
             if 200 <= resp.status_code < 300:
                 data = resp.json()
 
@@ -1197,11 +1204,13 @@ def _render_health_log() -> None:
         col_get, col_del = st.columns(2)
         with col_get:
             if st.button("\U0001f50d Get Log", width="stretch"):
-                resp = _api_call("GET", f"/health-log/{lookup_date}")
+                with st.spinner("Loading log..."):
+                    resp = _api_call("GET", f"/health-log/{lookup_date}")
                 _display_response_rich(resp)
         with col_del:
             if st.button("\U0001f5d1 Delete Log", width="stretch"):
-                resp = _api_call("DELETE", f"/health-log/{lookup_date}")
+                with st.spinner("Deleting log..."):
+                    resp = _api_call("DELETE", f"/health-log/{lookup_date}")
                 _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1222,7 +1231,8 @@ def _render_subscriptions() -> None:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Subscription Status")
         if st.button("\U0001f50d Check Status", width="stretch"):
-            resp = _api_call("GET", "/subscribe/status")
+            with st.spinner("Checking subscription..."):
+                resp = _api_call("GET", "/subscribe/status")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 tier = data.get("tier", "free")
@@ -1241,9 +1251,10 @@ def _render_subscriptions() -> None:
     with tab_checkout:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("\u2728 Upgrade to Premium")
-        st.info("This will create a Stripe Checkout session and return a redirect URL.")
+        st.markdown('<div class="aura-empty">\U0001f4b3 This will create a Stripe Checkout session and return a redirect URL.</div>', unsafe_allow_html=True)
         if st.button("\U0001f680 Start Premium Checkout", width="stretch"):
-            resp = _api_call("POST", "/subscribe/checkout")
+            with st.spinner("Creating checkout..."):
+                resp = _api_call("POST", "/subscribe/checkout")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 url = data.get("url", data.get("checkout_url", ""))
@@ -1317,7 +1328,8 @@ def _render_tickets() -> None:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("My Tickets")
         if st.button("\U0001f504 Load Tickets", width="stretch"):
-            resp = _api_call("GET", "/tickets")
+            with st.spinner("Loading tickets..."):
+                resp = _api_call("GET", "/tickets")
             _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1329,7 +1341,8 @@ def _render_tickets() -> None:
             if not detail_id:
                 st.warning("Enter a ticket ID.")
             else:
-                resp = _api_call("GET", f"/tickets/{detail_id}")
+                with st.spinner("Loading ticket..."):
+                    resp = _api_call("GET", f"/tickets/{detail_id}")
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.markdown(f'**{data.get("subject","")}**')
@@ -1391,7 +1404,7 @@ def _render_tickets() -> None:
                             else:
                                 _display_response_rich(resp)
                 else:
-                    st.info("No transitions available (terminal state).")
+                    st.markdown('<div class="aura-empty">\u2705 No transitions available (terminal state).</div>', unsafe_allow_html=True)
             elif resp.status_code == 404:
                 st.warning("Ticket not found.")
 
@@ -1421,7 +1434,8 @@ def _render_wellness() -> None:
         )
         wellness_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], key="wellness_lang")
         if st.button("\U0001f9ed Generate", width="stretch"):
-            resp = _api_call("POST", "/wellness/plan", json_data={"language": wellness_lang})
+            with st.spinner("Generating wellness plan..."):
+                resp = _api_call("POST", "/wellness/plan", json_data={"language": wellness_lang})
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 st.success("\u2705 Plan generated!")
@@ -1446,7 +1460,8 @@ def _render_wellness() -> None:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("My Wellness Plans")
         if st.button("\U0001f504 Load Plans", width="stretch"):
-            resp = _api_call("GET", "/wellness/plans")
+            with st.spinner("Loading plans..."):
+                resp = _api_call("GET", "/wellness/plans")
             if 200 <= resp.status_code < 300:
                 plans = resp.json()
                 if plans:
@@ -1463,7 +1478,7 @@ def _render_wellness() -> None:
                     with st.expander("Raw JSON"):
                         st.json(plans)
                 else:
-                    st.info("No plans yet.")
+                    st.markdown('<div class="aura-empty">\U0001f338 No plans yet.<br>Generate your first wellness plan!</div>', unsafe_allow_html=True)
             else:
                 _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1476,7 +1491,8 @@ def _render_wellness() -> None:
             if not plan_id:
                 st.warning("Enter a plan ID.")
             else:
-                resp = _api_call("GET", f"/wellness/plans/{plan_id}")
+                with st.spinner("Loading plan..."):
+                    resp = _api_call("GET", f"/wellness/plans/{plan_id}")
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.subheader(data.get("title", "Wellness Plan"))
@@ -1562,7 +1578,8 @@ def _render_cycle_tracker() -> None:
             load_clicked = st.button("\U0001f504 Load Cycles", width="stretch")
 
         if load_clicked:
-            resp = _api_call("GET", "/cycles", params={"page": cycle_page, "limit": cycle_limit})
+            with st.spinner("Loading cycles..."):
+                resp = _api_call("GET", "/cycles", params={"page": cycle_page, "limit": cycle_limit})
             if 200 <= resp.status_code < 300:
                 cycles = resp.json()
                 if isinstance(cycles, list) and cycles:
@@ -1592,7 +1609,8 @@ def _render_cycle_tracker() -> None:
                                 st.caption(f"\U0001f4dd {c['notes']}")
 
                             if st.button(f"\U0001f5d1 Delete", key=f"del_cycle_{cycle_id}"):
-                                del_resp = _api_call("DELETE", f"/cycles/{cycle_id}")
+                                with st.spinner("Deleting..."):
+                                    del_resp = _api_call("DELETE", f"/cycles/{cycle_id}")
                                 if 200 <= del_resp.status_code < 300:
                                     st.success("Cycle deleted!")
                                     st.rerun()
@@ -1603,7 +1621,7 @@ def _render_cycle_tracker() -> None:
                     with st.expander("Raw JSON"):
                         st.json(cycles)
                 elif isinstance(cycles, list):
-                    st.info("No cycles found. Log your first period!")
+                    st.markdown('<div class="aura-empty">\U0001f338 No cycles found.<br>Log your first period!</div>', unsafe_allow_html=True)
                 else:
                     _display_response_rich(resp)
             else:
@@ -1613,7 +1631,8 @@ def _render_cycle_tracker() -> None:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("\U0001f52e Period Prediction")
         if st.button("\U0001f50d Get Prediction", width="stretch"):
-            resp = _api_call("GET", "/cycles/prediction")
+            with st.spinner("Calculating prediction..."):
+                resp = _api_call("GET", "/cycles/prediction")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 col1, col2, col3 = st.columns(3)
@@ -1643,7 +1662,7 @@ def _render_cycle_tracker() -> None:
                 with st.expander("Raw JSON"):
                     st.json(data)
             elif resp.status_code == 404:
-                st.info("No cycles logged yet. Log your first period to get predictions!")
+                st.markdown('<div class="aura-empty">\U0001f338 No cycles logged yet.<br>Log your first period to get predictions!</div>', unsafe_allow_html=True)
             else:
                 _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1668,7 +1687,7 @@ def _render_admin() -> None:
     user_email = st.session_state.get("user_email", "").lower()
     if user_email not in [e.lower() for e in _ADMIN_EMAILS]:
         st.error("\u26a0 You do not have admin access.")
-        st.info("This page is restricted to admin users.")
+        st.markdown('<div class="aura-empty">\U0001f511 This page is restricted to admin users.</div>', unsafe_allow_html=True)
         return
 
     tab_stats, tab_users, tab_interactions, tab_data = st.tabs(
@@ -1679,7 +1698,8 @@ def _render_admin() -> None:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Platform Overview")
         if st.button("\U0001f4ca Load Stats", width="stretch"):
-            resp = _api_call("GET", "/admin/stats")
+            with st.spinner("Loading stats..."):
+                resp = _api_call("GET", "/admin/stats")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 col1, col2, col3 = st.columns(3)
@@ -1722,7 +1742,8 @@ def _render_admin() -> None:
             params = {"page": page_num, "limit": page_limit}
             if search_email:
                 params["search"] = search_email
-            resp = _api_call("GET", "/admin/users", params=params)
+            with st.spinner("Loading users..."):
+                resp = _api_call("GET", "/admin/users", params=params)
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 users = data.get("users", [])
@@ -1733,7 +1754,7 @@ def _render_admin() -> None:
                             for k, v in u.items():
                                 st.markdown(f"**{k}:** {v}")
                 else:
-                    st.info("No users found.")
+                    st.markdown('<div class="aura-empty">\U0001f464 No users found.</div>', unsafe_allow_html=True)
             else:
                 _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1743,7 +1764,8 @@ def _render_admin() -> None:
         st.subheader("AI Interaction Analytics")
         days = st.number_input("Days to look back", min_value=1, max_value=365, value=30, key="admin_interactions_days")
         if st.button("\U0001f4c8 Load Interactions", width="stretch"):
-            resp = _api_call("GET", "/admin/interactions", params={"days": days})
+            with st.spinner("Loading interactions..."):
+                resp = _api_call("GET", "/admin/interactions", params={"days": days})
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 daily = data.get("daily", [])
@@ -1755,7 +1777,7 @@ def _render_admin() -> None:
                         count = entry.get("count", 0)
                         st.markdown(f"**{date_str}** — {itype}: {count}")
                 else:
-                    st.info("No interaction data found for this period.")
+                    st.markdown('<div class="aura-empty">\U0001f4ca No interaction data found for this period.</div>', unsafe_allow_html=True)
                 with st.expander("Raw JSON"):
                     st.json(data)
             else:
@@ -1772,7 +1794,8 @@ def _render_admin() -> None:
             if not user_id_input:
                 st.error("Please enter a User ID.")
             else:
-                resp = _api_call("DELETE", f"/admin/data/{user_id_input}")
+                with st.spinner("Deleting user data..."):
+                    resp = _api_call("DELETE", f"/admin/data/{user_id_input}")
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     tables_cleared = data.get("tables_cleared", [])
