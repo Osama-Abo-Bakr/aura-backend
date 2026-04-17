@@ -1,8 +1,9 @@
 """Tests for LangGraph node functions."""
 
 import pytest
+from unittest.mock import patch, MagicMock
 from app.graph.state import ConversationState, FileAttachment
-from app.graph.nodes import router, response_formatter
+from app.graph.nodes import router, response_formatter, memory_injection
 
 
 def make_state(**overrides) -> dict:
@@ -85,3 +86,121 @@ class TestResponseFormatter:
         )
         result = response_formatter(state)
         assert result == {}
+
+
+class TestMemoryInjection:
+    @pytest.mark.asyncio
+    async def test_injects_analysis_when_present(self):
+        """memory_injection populates last_analysis when conversation has an analysis."""
+        mock_analysis = {"concern": "mild acne", "severity": "mild"}
+
+        state = {
+            "user_id": "user-123",
+            "conversation_id": "conv-456",
+            "language": "en",
+            "current_message": "Tell me more about this",
+            "current_file": None,
+            "messages": [],
+            "last_analysis": None,
+            "last_analysis_type": None,
+            "summary_context": "",
+            "cycle_context": "",
+            "response_chunks": [],
+            "analysis_meta": None,
+            "error": None,
+        }
+
+        async def mock_summary(user_id):
+            return "Skin analysis: mild acne"
+
+        def mock_cycle(user_id):
+            return "Cycle: follicular phase"
+
+        async def mock_conv_analysis(conv_id, uid):
+            return (mock_analysis, "skin")
+
+        with patch("app.graph.nodes.build_summary_context", side_effect=mock_summary), \
+             patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle), \
+             patch("app.graph.nodes.get_conversation_analysis", side_effect=mock_conv_analysis):
+            result = await memory_injection(state)
+
+        assert result["last_analysis"] == mock_analysis
+        assert result["last_analysis_type"] == "skin"
+        assert result["summary_context"] == "Skin analysis: mild acne"
+        assert result["cycle_context"] == "Cycle: follicular phase"
+
+    @pytest.mark.asyncio
+    async def test_does_not_overwrite_existing_analysis(self):
+        """memory_injection does not overwrite last_analysis if state already has one."""
+        existing_analysis = {"concern": "eczema", "severity": "moderate"}
+
+        state = {
+            "user_id": "user-123",
+            "conversation_id": "conv-456",
+            "language": "en",
+            "current_message": "Tell me more",
+            "current_file": None,
+            "messages": [],
+            "last_analysis": existing_analysis,
+            "last_analysis_type": "skin",
+            "summary_context": "",
+            "cycle_context": "",
+            "response_chunks": [],
+            "analysis_meta": None,
+            "error": None,
+        }
+
+        async def mock_summary(user_id):
+            return ""
+
+        def mock_cycle(user_id):
+            return ""
+
+        async def mock_conv_analysis(conv_id, uid):
+            return ({"concern": "different"}, "report")
+
+        with patch("app.graph.nodes.build_summary_context", side_effect=mock_summary), \
+             patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle), \
+             patch("app.graph.nodes.get_conversation_analysis", side_effect=mock_conv_analysis):
+            result = await memory_injection(state)
+
+        # Should NOT contain last_analysis because state already has one
+        assert "last_analysis" not in result
+        assert "last_analysis_type" not in result
+
+    @pytest.mark.asyncio
+    async def test_no_analysis_in_conversation(self):
+        """memory_injection works fine when conversation has no analysis."""
+        state = {
+            "user_id": "user-123",
+            "conversation_id": "conv-no-analysis",
+            "language": "en",
+            "current_message": "Hello",
+            "current_file": None,
+            "messages": [],
+            "last_analysis": None,
+            "last_analysis_type": None,
+            "summary_context": "",
+            "cycle_context": "",
+            "response_chunks": [],
+            "analysis_meta": None,
+            "error": None,
+        }
+
+        async def mock_summary(user_id):
+            return "No past analyses"
+
+        def mock_cycle(user_id):
+            return ""
+
+        async def mock_conv_analysis(conv_id, uid):
+            return (None, None)
+
+        with patch("app.graph.nodes.build_summary_context", side_effect=mock_summary), \
+             patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle), \
+             patch("app.graph.nodes.get_conversation_analysis", side_effect=mock_conv_analysis):
+            result = await memory_injection(state)
+
+        assert "last_analysis" not in result
+        assert "last_analysis_type" not in result
+        assert result["summary_context"] == "No past analyses"
