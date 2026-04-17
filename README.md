@@ -27,6 +27,7 @@ Backend API for **Aura Health** — an AI health companion for women in MENA. Po
 - [Background Tasks](#background-tasks)
 - [Database Migrations](#database-migrations)
 - [Testing](#testing)
+- [CI/CD & Security](#cicd--security)
 - [Deployment](#deployment)
 - [Error Handling](#error-handling)
 - [Architecture Decisions](#architecture-decisions)
@@ -51,7 +52,7 @@ Aura is a bilingual (Arabic/English) health companion that provides:
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | FastAPI 0.115 |
+| Framework | FastAPI 0.115.14 |
 | Database | Supabase (Postgres + Auth + Storage) |
 | AI | Google Gemini 2.5 Flash |
 | Billing | Stripe Checkout + Webhooks |
@@ -184,7 +185,15 @@ aura-backend/
 │   ├── test_health_log.py          # Health log summary unit tests
 │   ├── test_middleware.py          # Middleware unit tests
 │   ├── test_security.py            # JWT verification tests
-│   └── test_analysis.py           # Analysis endpoint tests
+│   ├── test_analysis.py           # Analysis endpoint tests
+│   └── test_regression_bugs.py    # Regression tests for past bugs
+├── streamlit_app/
+│   ├── app.py                     # Interactive test dashboard (all API endpoints)
+│   ├── Dockerfile                 # Streamlit container
+│   └── requirements.txt           # Dashboard-specific deps
+├── .github/
+│   ├── workflows/ci.yml           # 5-job CI pipeline (lint → security → test → docker → deploy)
+│   └── dependabot.yml             # Weekly dependency updates (pip, docker, actions)
 ├── .env.example
 ├── docker-compose.yml
 ├── Dockerfile
@@ -441,6 +450,9 @@ All tables use Row Level Security (RLS) — users can only access their own data
 # Run all tests
 pytest tests/ -v
 
+# Run with coverage (50% minimum threshold)
+pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=50
+
 # Run specific test files
 pytest tests/test_auth.py tests/test_auth_endpoints.py tests/test_tickets.py -v
 
@@ -454,6 +466,56 @@ The test suite uses:
 - **Mocked Gemini** — `google.generativeai.configure` is patched to prevent real API calls
 - **Dependency overrides** — `get_current_user` is overridden in endpoint tests to inject a fake user
 - **Service mocking** — `AuthService` and `supabase_admin` are mocked per-test with `unittest.mock.patch`
+- **64 tests** covering auth, tickets, health log, middleware, security, analysis, and regression bugs
+
+---
+
+## CI/CD & Security
+
+All pushes to `main`/`develop` and PRs to `main` run through a 5-job pipeline:
+
+```
+┌──────┐   ┌──────────┐
+│ Lint │──▶│   Test   │──┐
+└──────┘   └──────────┘  │
+┌──────────┐             ├──▶┌────────┐   ┌────────┐
+│ Security │─────────────│──▶│ Docker │──▶│ Deploy │
+└──────────┘             │   └────────┘   └────────┘
+                         │   (Trivy scan)   (main only)
+```
+
+| Job | Tools | Purpose |
+|-----|-------|---------|
+| **Lint & Format** | Ruff (lint + format), mypy | Code quality gate |
+| **Security Scan** | Bandit (SAST), pip-audit (CVEs), Gitleaks (secrets) | Vulnerability & secret detection |
+| **Test & Coverage** | pytest-cov (50% min), Redis service container | Functional correctness + coverage |
+| **Docker Build & Scan** | Docker Buildx, Trivy (container + filesystem SARIF) | Image vulnerabilities, misconfigurations |
+| **Deploy Gate** | — | Manual gate (main branch only, all checks pass) |
+
+### Security Features
+
+- **Bandit** — Python SAST scan (JSON artifact uploaded)
+- **pip-audit** — Dependency vulnerability audit against known CVEs
+- **Gitleaks** — Secret detection across full git history
+- **Trivy** — Container image scan (CRITICAL/HIGH severity, SARIF to GitHub Security tab) + filesystem misconfiguration scan
+- **Dependabot** — Weekly automated dependency updates for pip, Docker, and GitHub Actions
+- **Concurrency control** — In-flight CI runs on the same branch are auto-cancelled
+
+### Streamlit Dashboard
+
+An interactive test dashboard is available in `streamlit_app/` for manual API testing:
+
+```bash
+# Run locally
+cd streamlit_app
+pip install -r requirements.txt
+streamlit run app.py
+
+# Or via Docker
+docker compose up streamlit
+```
+
+Provides a UI for all 8 endpoint groups: Auth, Profile, Chat, Analysis, Health Log, Subscriptions, Tickets, Wellness.
 
 ---
 
@@ -482,6 +544,8 @@ Before deploying to production:
 - [ ] Run all database migrations
 - [ ] Create the `analyses` Storage bucket in Supabase dashboard
 - [ ] Configure Stripe webhook endpoint to `/api/v1/webhooks/stripe`
+- [ ] Set `SUPABASE_JWT_SECRET_TEST` GitHub secret for CI test job
+- [ ] Set `CODECOV_TOKEN` GitHub secret for coverage uploads
 
 ### Procfile
 
