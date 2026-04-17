@@ -37,6 +37,9 @@ class MessageResponse(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     created_at: datetime
+    file_path: str | None = None
+    file_type: str | None = None
+    analysis_id: str | None = None
 
     model_config = {"from_attributes": True}
 
