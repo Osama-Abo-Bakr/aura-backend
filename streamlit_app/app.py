@@ -44,6 +44,7 @@ NAV_ITEMS = [
     ("\U0001f4b3", "Subscriptions"),
     ("\U0001f3ab", "Tickets"),
     ("\U0001f338", "Wellness"),
+    ("\U0001f511", "Admin"),
 ]
 
 CUSTOM_CSS = """
@@ -1500,6 +1501,132 @@ def _render_cycle_tracker() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Admin Page
+# ---------------------------------------------------------------------------
+
+# Admin emails that can access this page (must match ADMIN_EMAILS env var)
+_ADMIN_EMAILS = [
+    "osama@aura.health",
+    "admin@aura.health",
+]
+
+
+def _render_admin() -> None:
+    st.header("\U0001f511 Admin Dashboard")
+    if not _ensure_auth():
+        return
+
+    user_email = st.session_state.get("user_email", "").lower()
+    if user_email not in [e.lower() for e in _ADMIN_EMAILS]:
+        st.error("\u26a0 You do not have admin access.")
+        st.info("This page is restricted to admin users.")
+        return
+
+    tab_stats, tab_users, tab_interactions, tab_data = st.tabs(
+        ["Stats Overview", "Users", "Interactions", "Data Management"]
+    )
+
+    with tab_stats:
+        st.subheader("Platform Overview")
+        if st.button("\U0001f4ca Load Stats", width="stretch"):
+            resp = _api_call("GET", "/admin/stats")
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Users", data.get("users", 0))
+                col1.metric("Conversations", data.get("conversations", 0))
+                col2.metric("Messages", data.get("messages", 0))
+                col2.metric("Analyses", data.get("analyses", 0))
+                col3.metric("Cycle Entries", data.get("cycle_entries", 0))
+                col3.metric("Health Logs", data.get("health_logs", 0))
+
+                interactions = data.get("ai_interactions", {})
+                st.markdown("### AI Interactions")
+                ic1, ic2, ic3, ic4 = st.columns(4)
+                ic1.metric("Chat", interactions.get("chat", 0))
+                ic2.metric("Skin", interactions.get("skin", 0))
+                ic3.metric("Report", interactions.get("report", 0))
+                ic4.metric("Total", interactions.get("total", 0))
+
+                subs = data.get("subscriptions", {})
+                st.markdown("### Subscriptions")
+                sc1, sc2 = st.columns(2)
+                sc1.metric("Free", subs.get("free", 0))
+                sc2.metric("Premium", subs.get("premium", 0))
+
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+
+    with tab_users:
+        st.subheader("Users")
+        col_search = st.columns(1)
+        search_email = st.text_input("\U0001f50d Search by email", key="admin_user_search")
+        page_num = st.number_input("Page", min_value=1, value=1, key="admin_users_page")
+        page_limit = st.number_input("Limit", min_value=1, max_value=100, value=20, key="admin_users_limit")
+
+        if st.button("\U0001f4da Load Users", width="stretch"):
+            params = {"page": page_num, "limit": page_limit}
+            if search_email:
+                params["search"] = search_email
+            resp = _api_call("GET", "/admin/users", params=params)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                users = data.get("users", [])
+                if users:
+                    st.write(f"Showing {len(users)} users (Page {data.get('page', 1)})")
+                    for u in users:
+                        with st.expander(f"{u.get('email', 'Unknown')}"):
+                            for k, v in u.items():
+                                st.markdown(f"**{k}:** {v}")
+                else:
+                    st.info("No users found.")
+            else:
+                _display_response_rich(resp)
+
+    with tab_interactions:
+        st.subheader("AI Interaction Analytics")
+        days = st.number_input("Days to look back", min_value=1, max_value=365, value=30, key="admin_interactions_days")
+        if st.button("\U0001f4c8 Load Interactions", width="stretch"):
+            resp = _api_call("GET", "/admin/interactions", params={"days": days})
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                daily = data.get("daily", [])
+                if daily:
+                    st.write(f"Last {days} days of interactions ({len(daily)} records)")
+                    for entry in daily:
+                        date_str = entry.get("date", "")
+                        itype = entry.get("interaction_type", "")
+                        count = entry.get("count", 0)
+                        st.markdown(f"**{date_str}** — {itype}: {count}")
+                else:
+                    st.info("No interaction data found for this period.")
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+
+    with tab_data:
+        st.subheader("\u26a0 Data Management")
+        st.warning("This will permanently delete ALL application data for a user. Their account and subscription will NOT be deleted.")
+
+        user_id_input = st.text_input("User ID to delete data for", key="admin_delete_user_id")
+        if st.button("\U0001f5d1 Delete All User Data", type="primary", width="stretch"):
+            if not user_id_input:
+                st.error("Please enter a User ID.")
+            else:
+                resp = _api_call("DELETE", f"/admin/data/{user_id_input}")
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    tables_cleared = data.get("tables_cleared", [])
+                    st.success(f"\u2705 Deleted all data for user {user_id_input}")
+                    st.write(f"Tables cleared: {', '.join(tables_cleared)}")
+                else:
+                    _display_response_rich(resp)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1512,6 +1639,7 @@ PAGES = {
     "Subscriptions": _render_subscriptions,
     "Tickets": _render_tickets,
     "Wellness": _render_wellness,
+    "Admin": _render_admin,
 }
 
 st.set_page_config(
