@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Sentry
     SENTRY_DSN: str = ""
 
+    # Admin
+    ADMIN_EMAILS: str = ""  # Comma-separated admin emails
+
     class Config:
         env_file = ".env"
 

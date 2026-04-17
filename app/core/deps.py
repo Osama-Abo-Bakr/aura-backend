@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.core.config import settings
 from app.core.security import verify_supabase_jwt
 from app.db.supabase import supabase_admin
 
@@ -51,8 +52,14 @@ async def check_quota(
     Verify the user has not exceeded their monthly quota for the given
     interaction_type ('chat', 'skin', or 'report').
 
+    Admin users bypass quota checks entirely.
     Raises HTTPException 429 when the limit is reached.
     """
+    # Skip quota check for admin users
+    admin_emails = [e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()]
+    if current_user.get("email", "").lower() in admin_emails:
+        return
+
     user_id: str = current_user["sub"]
 
     # Look up the user's subscription tier.
@@ -139,3 +146,16 @@ async def get_current_user_with_tier(
     )
     tier: str = ((sub_resp.data if sub_resp else None) or {}).get("tier", "free")
     return current_user, tier
+
+
+async def require_admin(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Dependency that raises 403 if the user is not an admin."""
+    admin_emails = [e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()]
+    if current_user.get("email", "").lower() not in admin_emails:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
