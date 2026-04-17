@@ -30,3 +30,11 @@ pip-audit==2.7.3
 # ─────────────────────────────────────────────────────────────────────────
 wheel>=0.46.2           # CVE-2026-24049 (fixed in 0.46.2)
 jaraco-context>=6.1.0  # CVE-2026-23949 (fixed in 6.1.0)
+httpx==0.27.0           # supabase needs <0.28; google-genai wants >=0.28.1 but 0.27.0 works
+
+# ─────────────────────────────────────────────────────────────────────────
+# Conversational analysis (LangGraph + LangChain)
+# ─────────────────────────────────────────────────────────────────────────
+langgraph>=0.2.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.0.0
