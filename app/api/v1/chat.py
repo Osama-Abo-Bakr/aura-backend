@@ -127,6 +127,7 @@ async def send_message(
         last_analysis=None,
         last_analysis_type=None,
         summary_context="",
+        cycle_context="",
         response_chunks=[],
         analysis_meta=None,
         error=None,
