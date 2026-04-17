@@ -1,314 +1,298 @@
-"""
-Chat endpoints — Week 4 implementation.
-
-Routes:
-  POST   /api/v1/chat/message                              — stream a health Q&A response
-  GET    /api/v1/chat/conversations                        — list user's conversations
-  GET    /api/v1/chat/conversations/{conversation_id}/messages — messages in a conversation
-  DELETE /api/v1/chat/conversations/{conversation_id}      — delete a conversation
-"""
+"""Unified chat endpoint that handles text messages, skin images, and report files
+through a LangGraph state machine with SSE streaming."""
 
 from __future__ import annotations
 
-import uuid
-from typing import Any
+import json
+import logging
+from datetime import datetime, timezone
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
 
-from app.core.deps import get_current_user, make_quota_checker
+from app.core.deps import check_quota, get_current_user
 from app.db.supabase import supabase_admin
-from app.services.gemini import stream_chat_response
-
-router = APIRouter(prefix="/chat")
-
-
-# ---------------------------------------------------------------------------
-# Request / response models
-# ---------------------------------------------------------------------------
-
-
-class ChatMessageRequest(BaseModel):
-    content: str = Field(..., min_length=1)
-    conversation_id: str | None = None
-    language: str = "en"
-
-
-# ---------------------------------------------------------------------------
-# POST /chat/message
-# ---------------------------------------------------------------------------
-
-
-@router.post(
-    "/message",
-    summary="Stream a health Q&A response via SSE",
-    dependencies=[Depends(make_quota_checker("chat"))],
+from app.graph import ConversationState, FileAttachment, conversation_graph
+from app.models.chat import (
+    AnalysisErrorEvent,
+    AnalysisMetaEvent,
+    ChatMessageRequest,
+    ContentEvent,
+    QuotaErrorEvent,
 )
-async def send_chat_message(
-    body: ChatMessageRequest,
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> StreamingResponse:
-    """
-    Send a user message and receive an SSE-streamed assistant response.
 
-    - Creates a new conversation if ``conversation_id`` is not supplied.
-    - Persists the user message before streaming.
-    - Persists the full assistant reply after the stream completes.
-    - Records a quota interaction row in ``ai_interactions``.
-    """
-    user_id: str = current_user["sub"]
-    conversation_id: str = body.conversation_id or ""
-    language: str = body.language
+logger = logging.getLogger(__name__)
 
-    # ------------------------------------------------------------------
-    # 1. Resolve / create conversation
-    # ------------------------------------------------------------------
-    if not conversation_id:
-        conversation_id = str(uuid.uuid4())
-        title = body.content[:50]
-        supabase_admin.table("conversations").insert(
-            {
-                "id": conversation_id,
-                "user_id": user_id,
-                "language": language if language in ("ar", "en") else "en",
-                "title": title,
-            }
-        ).execute()
-    else:
-        # Verify the conversation belongs to the current user.
+router = APIRouter(prefix="/chat", tags=["Chat"])
+
+
+def _determine_quota_type(request: ChatMessageRequest) -> str:
+    """Return the interaction type for quota checking."""
+    if not request.has_file():
+        return "chat"
+    category = request.get_file_type_category()
+    if category == "image":
+        return "skin"
+    if category == "pdf":
+        return "report"
+    return "chat"
+
+
+@router.post("/message")
+async def send_message(
+    request: ChatMessageRequest,
+    user: dict = Depends(get_current_user),
+):
+    """Send a message with optional file attachment. Streams SSE response."""
+    user_id = user["sub"]
+
+    # Determine quota type and check
+    quota_type = _determine_quota_type(request)
+    try:
+        await check_quota(quota_type, user)
+    except HTTPException:
+        event = QuotaErrorEvent(
+            message=f"You've used all your {quota_type} credits this month.",
+            interaction_type=quota_type,
+        )
+        async def quota_error_stream():
+            yield f"data: {event.model_dump_json()}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(quota_error_stream(), media_type="text/event-stream")
+
+    # Get or create conversation
+    conversation_id = str(request.conversation_id) if request.conversation_id else None
+    if conversation_id:
         conv_resp = (
-            supabase_admin.table("conversations")
-            .select("id, user_id")
+            supabase_admin
+            .table("conversations")
+            .select("id")
             .eq("id", conversation_id)
-            .maybe_single()
+            .eq("user_id", user_id)
             .execute()
         )
-        if not conv_resp or not conv_resp.data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"error": "conversation_not_found"},
-            )
-        if conv_resp.data["user_id"] != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={"error": "conversation_not_owned"},
-            )
+        if not conv_resp.data:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+    else:
+        title = request.content[:50] if request.content else "New Conversation"
+        conv_resp = (
+            supabase_admin
+            .table("conversations")
+            .insert({"user_id": user_id, "language": request.language, "title": title})
+            .execute()
+        )
+        conversation_id = conv_resp.data[0]["id"]
 
-    # ------------------------------------------------------------------
-    # 2. Persist user message
-    # ------------------------------------------------------------------
-    supabase_admin.table("messages").insert(
-        {
-            "id": str(uuid.uuid4()),
-            "conversation_id": conversation_id,
-            "user_id": user_id,
-            "role": "user",
-            "content": body.content,
-        }
-    ).execute()
+    # Save user message to DB
+    msg_data = {
+        "id": str(uuid4()),
+        "conversation_id": conversation_id,
+        "user_id": user_id,
+        "role": "user",
+        "content": request.content,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if request.file_path:
+        msg_data["file_path"] = request.file_path
+        msg_data["file_type"] = request.file_type
 
-    # ------------------------------------------------------------------
-    # 3. Fetch last 10 messages for context
-    # ------------------------------------------------------------------
-    # Order DESC to get the most recent 10, then reverse for chronological order.
-    history_resp = (
-        supabase_admin.table("messages")
+    supabase_admin.table("messages").insert(msg_data).execute()
+
+    # Load conversation history (last 20 messages)
+    messages_resp = (
+        supabase_admin
+        .table("messages")
         .select("role, content")
         .eq("conversation_id", conversation_id)
         .order("created_at", desc=True)
-        .limit(10)
+        .limit(20)
         .execute()
     )
-    message_history: list[dict] = [
-        {"role": row["role"], "content": row["content"]}
-        for row in reversed(history_resp.data or [])
-    ]
+    messages = list(reversed(messages_resp.data)) if messages_resp.data else []
 
-    # ------------------------------------------------------------------
-    # 4. Record quota interaction
-    # ------------------------------------------------------------------
-    supabase_admin.table("ai_interactions").insert(
-        {
-            "user_id": user_id,
-            "interaction_type": "chat",
-        }
-    ).execute()
+    # Build file attachment if present
+    current_file = None
+    if request.file_path and request.file_type:
+        current_file = FileAttachment(file_path=request.file_path, file_type=request.file_type)
 
-    # ------------------------------------------------------------------
-    # 5. Stream response via SSE
-    # ------------------------------------------------------------------
-    async def event_generator():
-        full_response = ""
-        async for chunk in stream_chat_response(message_history, language):
-            full_response += chunk
-            # Escape newlines so each SSE data line is on a single line.
-            safe_chunk = chunk.replace("\n", "\\n")
-            yield f"data: {safe_chunk}\n\n"
+    # Build initial state
+    initial_state = ConversationState(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        language=request.language,
+        current_message=request.content,
+        current_file=current_file,
+        messages=messages,
+        last_analysis=None,
+        last_analysis_type=None,
+        summary_context="",
+        response_chunks=[],
+        analysis_meta=None,
+        error=None,
+    )
 
-        # 6. Save full assistant response to DB after streaming completes.
-        supabase_admin.table("messages").insert(
-            {
-                "id": str(uuid.uuid4()),
+    # Run the graph
+    async def stream_response():
+        try:
+            result = await conversation_graph.ainvoke(initial_state)
+
+            # Stream content chunks
+            for chunk in result.get("response_chunks", []):
+                event = ContentEvent(text=chunk)
+                yield f"data: {event.model_dump_json()}\n\n"
+
+            # Stream analysis meta if present
+            analysis_meta = result.get("analysis_meta")
+            if analysis_meta:
+                event = AnalysisMetaEvent(
+                    analysis_type=analysis_meta["analysis_type"],
+                    analysis_id=analysis_meta["analysis_id"],
+                )
+                yield f"data: {event.model_dump_json()}\n\n"
+
+            # Stream error if present
+            if result.get("error"):
+                event = AnalysisErrorEvent(message=result["error"])
+                yield f"data: {event.model_dump_json()}\n\n"
+
+            # Save assistant message to DB
+            full_response = "".join(result.get("response_chunks", []))
+            assistant_msg_data = {
+                "id": str(uuid4()),
                 "conversation_id": conversation_id,
                 "user_id": user_id,
                 "role": "assistant",
                 "content": full_response,
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
-        ).execute()
+            if analysis_meta:
+                assistant_msg_data["analysis_id"] = analysis_meta["analysis_id"]
 
-        yield "data: [DONE]\n\n"
+            supabase_admin.table("messages").insert(assistant_msg_data).execute()
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-        },
-    )
+            # Record quota usage
+            interaction_type = "chat"
+            if current_file and current_file.get("file_type", "").startswith("image/"):
+                interaction_type = "skin"
+            elif current_file and current_file.get("file_type") == "application/pdf":
+                interaction_type = "report"
+            supabase_admin.table("ai_interactions").insert({
+                "user_id": user_id,
+                "interaction_type": interaction_type,
+            }).execute()
+
+        except Exception as e:
+            logger.error(f"Chat graph error: {e}", exc_info=True)
+            error_event = AnalysisErrorEvent(message="An unexpected error occurred. Please try again.")
+            yield f"data: {error_event.model_dump_json()}\n\n"
+
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(stream_response(), media_type="text/event-stream")
 
 
-# ---------------------------------------------------------------------------
-# GET /chat/conversations
-# ---------------------------------------------------------------------------
-
-
-@router.get(
-    "/conversations",
-    status_code=status.HTTP_200_OK,
-    summary="List the authenticated user's conversations",
-)
-async def list_conversations(
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> list[dict]:
-    """
-    Return up to 20 most recent conversations for the authenticated user,
-    each annotated with a ``message_count`` field.
-    """
-    user_id: str = current_user["sub"]
-
-    convs_resp = (
-        supabase_admin.table("conversations")
-        .select("id, title, language, created_at")
+@router.get("/conversations", response_model=list[dict])
+async def list_conversations(user: dict = Depends(get_current_user)):
+    """List user's most recent conversations."""
+    user_id = user["sub"]
+    resp = (
+        supabase_admin
+        .table("conversations")
+        .select("id, title, created_at")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .limit(20)
         .execute()
     )
-
-    conversations = convs_resp.data or []
-
-    # Annotate each conversation with its message count.
-    result = []
-    for conv in conversations:
-        count_resp = (
-            supabase_admin.table("messages")
-            .select("id", count="exact")
-            .eq("conversation_id", conv["id"])
-            .execute()
-        )
-        result.append(
-            {
-                "id": conv["id"],
-                "title": conv["title"],
-                "language": conv["language"],
-                "created_at": conv["created_at"],
-                "message_count": count_resp.count or 0,
-            }
-        )
-
-    return result
+    return resp.data
 
 
-# ---------------------------------------------------------------------------
-# GET /chat/conversations/{conversation_id}/messages
-# ---------------------------------------------------------------------------
-
-
-@router.get(
-    "/conversations/{conversation_id}/messages",
-    status_code=status.HTTP_200_OK,
-    summary="Fetch all messages in a conversation",
-)
-async def get_conversation_messages(
-    conversation_id: str,
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> list[dict]:
-    """
-    Return all messages in the given conversation, ordered oldest-first.
-    Returns 404 if the conversation does not exist or belongs to another user.
-    """
-    user_id: str = current_user["sub"]
-
-    # Verify ownership.
+@router.get("/conversations/{conversation_id}/messages", response_model=list[dict])
+async def get_messages(conversation_id: str, user: dict = Depends(get_current_user)):
+    """Get all messages in a conversation."""
+    user_id = user["sub"]
     conv_resp = (
-        supabase_admin.table("conversations")
-        .select("id, user_id")
+        supabase_admin
+        .table("conversations")
+        .select("id")
         .eq("id", conversation_id)
-        .maybe_single()
+        .eq("user_id", user_id)
         .execute()
     )
-    if not conv_resp or not conv_resp.data or conv_resp.data["user_id"] != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "conversation_not_found"},
-        )
+    if not conv_resp.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
-    msgs_resp = (
-        supabase_admin.table("messages")
-        .select("id, role, content, created_at")
+    resp = (
+        supabase_admin
+        .table("messages")
+        .select("id, role, content, created_at, file_path, file_type, analysis_id")
         .eq("conversation_id", conversation_id)
         .order("created_at", desc=False)
         .execute()
     )
-
-    return [
-        {
-            "id": row["id"],
-            "role": row["role"],
-            "content": row["content"],
-            "created_at": row["created_at"],
-        }
-        for row in (msgs_resp.data or [])
-    ]
+    return resp.data
 
 
-# ---------------------------------------------------------------------------
-# DELETE /chat/conversations/{conversation_id}
-# ---------------------------------------------------------------------------
-
-
-@router.delete(
-    "/conversations/{conversation_id}",
-    status_code=status.HTTP_200_OK,
-    summary="Delete a conversation and all its messages",
-)
-async def delete_conversation(
+@router.get("/conversations/{conversation_id}/analysis")
+async def get_conversation_analysis(
     conversation_id: str,
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> dict:
-    """
-    Delete the specified conversation (cascades to messages via FK).
-    Returns 404 if the conversation does not exist or belongs to another user.
-    """
-    user_id: str = current_user["sub"]
+    user: dict = Depends(get_current_user),
+):
+    """Get the latest analysis result in a conversation."""
+    user_id = user["sub"]
 
-    # Verify ownership.
-    conv_resp = (
-        supabase_admin.table("conversations")
-        .select("id, user_id")
-        .eq("id", conversation_id)
-        .maybe_single()
+    # Find messages with analysis_id in this conversation
+    msgs_resp = (
+        supabase_admin
+        .table("messages")
+        .select("analysis_id")
+        .eq("conversation_id", conversation_id)
+        .eq("user_id", user_id)
+        .is_("analysis_id", "not.null")
+        .order("created_at", desc=True)
+        .limit(1)
         .execute()
     )
-    if not conv_resp or not conv_resp.data or conv_resp.data["user_id"] != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "conversation_not_found"},
-        )
 
+    if not msgs_resp.data:
+        raise HTTPException(status_code=404, detail="No analysis found in this conversation")
+
+    analysis_id = msgs_resp.data[0]["analysis_id"]
+
+    # Fetch the analysis
+    analysis_resp = (
+        supabase_admin
+        .table("analyses")
+        .select("*")
+        .eq("id", analysis_id)
+        .execute()
+    )
+
+    if not analysis_resp.data:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    return analysis_resp.data[0]
+
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
+    """Delete a conversation and all its messages."""
+    user_id = user["sub"]
+
+    conv_resp = (
+        supabase_admin
+        .table("conversations")
+        .select("id")
+        .eq("id", conversation_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not conv_resp.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    supabase_admin.table("messages").delete().eq("conversation_id", conversation_id).execute()
     supabase_admin.table("conversations").delete().eq("id", conversation_id).execute()
 
-    return {"deleted": True}
+    return {"status": "deleted"}
