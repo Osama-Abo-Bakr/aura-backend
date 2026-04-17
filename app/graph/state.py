@@ -29,6 +29,7 @@ class ConversationState(TypedDict):
 
     # Ambient memory from past interactions
     summary_context: str  # Digest of past analyses/conversations
+    cycle_context: str  # Menstrual cycle phase and prediction context
 
     # Output
     response_chunks: list[str]  # Accumulated response text chunks

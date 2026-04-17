@@ -56,6 +56,7 @@ def _reset_mock_supabase():
     _mock_supabase_client.update.return_value = _mock_supabase_client
     _mock_supabase_client.delete.return_value = _mock_supabase_client
     _mock_supabase_client.eq.return_value = _mock_supabase_client
+    _mock_supabase_client.is_.return_value = _mock_supabase_client
     _mock_supabase_client.maybe_single.return_value = _mock_supabase_client
     _mock_supabase_client.order.return_value = _mock_supabase_client
     _mock_supabase_client.upsert.return_value = _mock_supabase_client

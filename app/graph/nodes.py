@@ -11,6 +11,7 @@ import logging
 from app.db.supabase import supabase_admin
 from app.graph.prompts import (
     ANALYSIS_FOLLOWUP_TEMPLATE,
+    CYCLE_CONTEXT_TEMPLATE,
     HEALTH_SYSTEM_PROMPT,
     MEMORY_CONTEXT_TEMPLATE,
 )
@@ -20,7 +21,7 @@ from app.services.gemini import (
     explain_medical_report,
     stream_chat_response,
 )
-from app.services.memory import build_summary_context
+from app.services.memory import build_summary_context, build_cycle_context, get_conversation_analysis
 from app.services.storage import download_file
 
 logger = logging.getLogger(__name__)
@@ -30,10 +31,24 @@ REPORT_TYPES = {"application/pdf"}
 
 
 async def memory_injection(state: ConversationState) -> dict:
-    """Inject ambient context from the user's past analyses and conversations."""
+    """Inject ambient context from the user's past analyses, conversations, cycle data,
+    and any analysis from the current conversation."""
     user_id = state["user_id"]
+    conversation_id = state["conversation_id"]
+
     summary = await build_summary_context(user_id=user_id)
-    return {"summary_context": summary}
+    cycle = build_cycle_context(user_id=user_id)
+
+    result = {"summary_context": summary, "cycle_context": cycle}
+
+    # Inject analysis from current conversation (enables follow-up questions)
+    if not state.get("last_analysis"):
+        analysis, analysis_type = await get_conversation_analysis(conversation_id, user_id)
+        if analysis:
+            result["last_analysis"] = analysis
+            result["last_analysis_type"] = analysis_type
+
+    return result
 
 
 def router(state: ConversationState) -> str:
@@ -189,6 +204,7 @@ async def chat_responder(state: ConversationState) -> dict:
     messages = state.get("messages", [])
     current_message = state["current_message"]
     summary_context = state.get("summary_context", "")
+    cycle_context = state.get("cycle_context", "")
     last_analysis = state.get("last_analysis")
     last_analysis_type = state.get("last_analysis_type")
 
@@ -197,6 +213,10 @@ async def chat_responder(state: ConversationState) -> dict:
     if summary_context:
         system_prompt += "\n\n" + MEMORY_CONTEXT_TEMPLATE.format(
             summary=summary_context
+        )
+    if cycle_context:
+        system_prompt += "\n\n" + CYCLE_CONTEXT_TEMPLATE.format(
+            cycle_info=cycle_context
         )
     if last_analysis and last_analysis_type:
         system_prompt += "\n\n" + ANALYSIS_FOLLOWUP_TEMPLATE.format(

@@ -39,11 +39,12 @@ NAV_ITEMS = [
     ("\U0001f512", "Auth"),
     ("\U0001f464", "Profile & Me"),
     ("\U0001f4ac", "Chat"),
-    ("\U0001f52c", "Analysis"),
+    ("\U0001f338", "Cycle Tracker"),
     ("\U0001f4c8", "Health Log"),
     ("\U0001f4b3", "Subscriptions"),
     ("\U0001f3ab", "Tickets"),
     ("\U0001f338", "Wellness"),
+    ("\U0001f511", "Admin"),
 ]
 
 CUSTOM_CSS = """
@@ -112,6 +113,12 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     padding: 20px;
     margin-bottom: 16px;
     border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid var(--aura-rose);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.aura-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 .aura-card-dark {
     background: var(--aura-plum);
@@ -130,24 +137,28 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
+    transition: transform 0.15s ease;
 }
-.badge-success { background: #e6f4ea; color: #1e7e34; }
-.badge-error   { background: #fde8e8; color: #c0392b; }
-.badge-warning { background: #fef5e7; color: #b7791f; }
-.badge-info    { background: #e8f0fe; color: #2c5282; }
+.aura-badge:hover {
+    transform: scale(1.05);
+}
+.badge-success { background: #e6f4ea; color: var(--aura-success); }
+.badge-error   { background: #fde8e8; color: var(--aura-error); }
+.badge-warning { background: #fef5e7; color: var(--aura-warning); }
+.badge-info    { background: #e8f0fe; color: var(--aura-info); }
 .badge-rose    { background: var(--aura-peach); color: var(--aura-rose-dark); }
-.badge-gold    { background: #fef5e7; color: #975a16; }
+.badge-gold    { background: #fef5e7; color: var(--aura-gold); }
 .badge-plum    { background: #ede8f0; color: var(--aura-plum); }
-.badge-open    { background: #e8f0fe; color: #2c5282; }
-.badge-in-progress { background: #fef5e7; color: #b7791f; }
-.badge-resolved { background: #e6f4ea; color: #1e7e34; }
+.badge-open    { background: #e8f0fe; color: var(--aura-info); }
+.badge-in-progress { background: #fef5e7; color: var(--aura-warning); }
+.badge-resolved { background: #e6f4ea; color: var(--aura-success); }
 .badge-closed  { background: #f0f0f0; color: #666; }
 .badge-free    { background: #f0f0f0; color: #666; }
 .badge-premium { background: linear-gradient(135deg,#f6e6b6,#d4a574); color: #5e3a1a; }
-.badge-pending   { background: #fef5e7; color: #b7791f; }
-.badge-processing { background: #e8f0fe; color: #2c5282; }
-.badge-completed { background: #e6f4ea; color: #1e7e34; }
-.badge-failed    { background: #fde8e8; color: #c0392b; }
+.badge-pending   { background: #fef5e7; color: var(--aura-warning); }
+.badge-processing { background: #e8f0fe; color: var(--aura-info); }
+.badge-completed { background: #e6f4ea; color: var(--aura-success); }
+.badge-failed    { background: #fde8e8; color: var(--aura-error); }
 
 /* Chat bubbles */
 .aura-chat-user {
@@ -158,6 +169,7 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     max-width: 75%;
     margin-left: auto;
     margin-bottom: 8px;
+    animation: fadeIn 0.3s ease;
 }
 .aura-chat-assistant {
     background: var(--aura-peach);
@@ -167,6 +179,11 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     max-width: 75%;
     margin-right: auto;
     margin-bottom: 8px;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Metric cards */
@@ -207,6 +224,7 @@ section[data-testid="stSidebar"] .stRadio label:hover {
 .stTabs [data-baseweb="tab"] {
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     padding: 8px 16px;
+    transition: all 0.2s ease !important;
 }
 .stTabs [aria-selected="true"] {
     border-bottom: 2px solid var(--aura-rose) !important;
@@ -220,6 +238,512 @@ section[data-testid="stSidebar"] .stRadio label:hover {
 
 /* Spinner override */
 .stSpinner > div { border-color: var(--aura-rose) transparent transparent transparent !important; }
+
+/* Page header with accent underline */
+.aura-page-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--aura-plum);
+    margin: 0 0 4px 0;
+    padding: 0;
+}
+.aura-page-header::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--aura-rose), var(--aura-gold));
+    border-radius: 2px;
+    margin-bottom: 20px;
+}
+
+/* Section title with left accent bar */
+.aura-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--aura-plum);
+    padding-left: 12px;
+    border-left: 3px solid var(--aura-rose);
+    margin: 20px 0 12px 0;
+}
+
+/* Empty state message */
+.aura-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--aura-plum-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Primary action button */
+.aura-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--aura-rose), var(--aura-rose-dark));
+    color: white !important;
+    padding: 10px 24px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    border: none;
+}
+.aura-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Metric grid layout */
+.aura-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+}
+
+/* Phase card for Cycle Tracker */
+.aura-phase-card {
+    background: linear-gradient(135deg, var(--aura-plum), var(--aura-plum-light));
+    color: var(--aura-cream);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin: 16px 0;
+}
+.aura-phase-card .phase-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.aura-phase-card .phase-desc {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Divider */
+.aura-divider {
+    border: none;
+    border-top: 1px solid var(--aura-peach-dark);
+    margin: 16px 0;
+}
+
+/* Upload zone */
+.aura-upload-zone {
+    border: 2px dashed var(--aura-peach-dark);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: center;
+    color: var(--aura-plum-light);
+    margin: 12px 0;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.aura-upload-zone:hover {
+    border-color: var(--aura-rose);
+    background: rgba(196, 114, 127, 0.05);
+}
+
+/* Streamlit form styling */
+section[data-testid="stForm"] {
+    border: 1px solid var(--aura-peach-dark);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+section[data-testid="stForm"] button[kind="primary"] {
+    background: linear-gradient(135deg, var(--aura-rose), var(--aura-rose-dark)) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+/* Streamlit input focus glow */
+input:focus, textarea:focus, select:focus {
+    box-shadow: 0 0 0 3px rgba(196, 114, 127, 0.2) !important;
+    border-color: var(--aura-rose) !important;
+}
+
+/* Chat error card */
+.aura-error-card {
+    background: #fdf2f2;
+    border-left: 3px solid var(--aura-error);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin: 8px 0;
+    color: var(--aura-error);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.aura-error-card .error-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.aura-error-card .error-msg {
+    flex: 1;
+}
+
+/* Typing indicator animation */
+.aura-typing {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    color: var(--aura-plum-light);
+    font-size: 0.85rem;
+}
+.aura-typing .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--aura-rose-light);
+    animation: aura-bounce 1.4s infinite ease-in-out;
+}
+.aura-typing .dot:nth-child(1) { animation-delay: 0s; }
+.aura-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+.aura-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aura-bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Upload zone header */
+.aura-upload-zone-header {
+    text-align: center;
+    margin-bottom: 12px;
+}
+.aura-upload-zone-header .upload-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 4px;
+}
+.aura-upload-zone-header .upload-title {
+    font-weight: 600;
+    color: var(--aura-plum);
+    font-size: 1rem;
+}
+.aura-upload-zone-header .upload-desc {
+    color: var(--aura-plum-light);
+    font-size: 0.85rem;
+}
+
+/* Conversation card */
+.aura-convo-card {
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid var(--aura-rose);
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.aura-convo-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+.aura-convo-card .convo-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--aura-plum);
+    margin-bottom: 4px;
+}
+.aura-convo-card .convo-meta {
+    font-size: 0.8rem;
+    color: var(--aura-plum-light);
+    margin-bottom: 8px;
+}
+
+/* === GEN-Z DESIGN SYSTEM ADDITIONS === */
+
+/* Glassmorphism card */
+.glass-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(61, 50, 68, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(61, 50, 68, 0.12);
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Stat card - vertical layout with big number */
+.stat-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(249,232,228,0.6));
+    border-radius: var(--radius-lg);
+    padding: 20px 16px;
+    text-align: center;
+    border: 1px solid var(--aura-peach-dark);
+    transition: transform 0.2s ease;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-card .stat-icon { font-size: 2rem; margin-bottom: 8px; }
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+}
+.stat-card .stat-label { font-size: 0.8rem; color: var(--aura-plum-light); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+/* Stat card color variants */
+.stat-card.purple { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(196,114,127,0.08)); }
+.stat-card.blue { background: linear-gradient(135deg, rgba(56,189,248,0.08), rgba(139,92,246,0.08)); }
+.stat-card.green { background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(56,189,248,0.08)); }
+.stat-card.rose { background: linear-gradient(135deg, rgba(196,114,127,0.08), rgba(249,232,228,0.3)); }
+.stat-card.gold { background: linear-gradient(135deg, rgba(212,165,116,0.08), rgba(249,232,228,0.3)); }
+
+/* Admin grid */
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 16px 0;
+}
+@media (max-width: 768px) {
+    .admin-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Data row - key value display */
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--aura-peach-dark);
+}
+.data-row:last-child { border-bottom: none; }
+.data-row .data-key { color: var(--aura-plum-light); font-size: 0.85rem; }
+.data-row .data-value { color: var(--aura-plum); font-weight: 600; }
+
+/* Interaction bar chart */
+.interaction-bar-wrap { margin: 8px 0; }
+.interaction-bar-label { font-size: 0.8rem; color: var(--aura-plum-light); margin-bottom: 4px; }
+.interaction-bar {
+    height: 28px;
+    border-radius: 14px;
+    background: var(--aura-peach);
+    overflow: hidden;
+    position: relative;
+}
+.interaction-bar-fill {
+    height: 100%;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    transition: width 0.5s ease;
+}
+.interaction-bar-fill.chat { background: linear-gradient(135deg, var(--aura-rose), #8B5CF6); }
+.interaction-bar-fill.skin { background: linear-gradient(135deg, #38BDF8, #8B5CF6); }
+.interaction-bar-fill.report { background: linear-gradient(135deg, #34D399, #38BDF8); }
+.interaction-bar-fill.total { background: linear-gradient(135deg, var(--aura-rose), var(--aura-gold)); }
+
+/* User card */
+.user-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid #8B5CF6;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.user-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.user-card .user-email { font-weight: 600; color: var(--aura-plum); font-size: 0.95rem; }
+.user-card .user-meta { font-size: 0.8rem; color: var(--aura-plum-light); margin-top: 4px; }
+
+/* Danger zone */
+.danger-zone {
+    background: linear-gradient(135deg, rgba(212,100,92,0.05), rgba(212,100,92,0.1));
+    border: 2px solid var(--aura-error);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 16px 0;
+}
+.danger-zone .danger-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--aura-error);
+    margin-bottom: 8px;
+}
+.danger-zone .danger-text {
+    color: var(--aura-plum-light);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+/* Action button - gradient primary */
+.action-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6);
+    color: white !important;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 15px rgba(196, 114, 127, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+}
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(196, 114, 127, 0.4);
+}
+
+/* Danger action button */
+.danger-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--aura-error), #c0392b);
+    color: white !important;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 15px rgba(212, 100, 92, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.danger-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 100, 92, 0.4);
+}
+
+/* Section glass */
+.section-glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+/* Pill badge - smaller and more colorful */
+.pill-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.pill-badge.purple { background: rgba(139,92,246,0.15); color: #8B5CF6; }
+.pill-badge.blue { background: rgba(56,189,248,0.15); color: #0EA5E9; }
+.pill-badge.green { background: rgba(52,211,153,0.15); color: #059669; }
+.pill-badge.rose { background: var(--aura-peach); color: var(--aura-rose-dark); }
+.pill-badge.gold { background: rgba(212,165,116,0.2); color: #975a16; }
+
+/* Log entry card */
+.log-entry {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid var(--aura-rose);
+    transition: transform 0.2s ease;
+}
+.log-entry:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.log-entry .log-date { font-weight: 600; color: var(--aura-plum); font-size: 0.9rem; }
+.log-entry .log-details { color: var(--aura-plum-light); font-size: 0.85rem; margin-top: 4px; }
+
+/* Mood indicator */
+.mood-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+.mood-indicator.low { background: rgba(212,100,92,0.15); color: var(--aura-error); }
+.mood-indicator.medium { background: rgba(226,166,66,0.15); color: var(--aura-warning); }
+.mood-indicator.high { background: rgba(106,175,123,0.15); color: var(--aura-success); }
+
+/* Page-level animation */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+    animation: slideUp 0.4s ease-out;
+}
+
+/* Override Streamlit buttons */
+.stButton > button[kind="primary"], .stForm button[kind="primary"] {
+    background: linear-gradient(135deg, var(--aura-rose), #8B5CF6) !important;
+    color: white !important;
+    border-radius: 12px !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(196,114,127,0.3) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.stButton > button[kind="primary"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(196,114,127,0.4) !important;
+}
+
+/* Override Streamlit tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px !important;
+    background: var(--aura-peach) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+.stTabs [aria-selected="true"] {
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    color: var(--aura-rose-dark) !important;
+}
+
+/* Override Streamlit expander */
+.streamlit-expanderHeader {
+    background: var(--aura-peach) !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+}
+
+/* Main content area background */
+.stApp > main {
+    background: linear-gradient(180deg, #FFF8F6 0%, #F9E8E4 100%) !important;
+}
 """
 
 
@@ -348,12 +872,11 @@ def _display_response(resp: httpx.Response) -> None:
     _display_response_rich(resp)
 
 
-def _metric_card(icon: str, value: str, label: str) -> None:
-    st.markdown(
+def _metric_card(icon: str, value: str, label: str) -> str:
+    return (
         f'<div class="aura-metric"><div class="metric-icon">{icon}</div>'
         f'<div class="metric-value">{value}</div>'
-        f'<div class="metric-label">{label}</div></div>',
-        unsafe_allow_html=True,
+        f'<div class="metric-label">{label}</div></div>'
     )
 
 
@@ -433,7 +956,7 @@ def _do_signout() -> None:
 
 
 def _render_auth() -> None:
-    st.header("\U0001f512 Authentication")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f512 Authentication</h1></div>', unsafe_allow_html=True)
 
     tab_reg, tab_login, tab_refresh = st.tabs(["Register", "Login", "Refresh Token"])
 
@@ -517,7 +1040,8 @@ def _render_auth() -> None:
             if not refresh_token:
                 st.warning("No refresh token available.")
             else:
-                resp = _api_call("POST", "/auth/refresh", json_data={"refresh_token": refresh_token})
+                with st.spinner("Refreshing token..."):
+                    resp = _api_call("POST", "/auth/refresh", json_data={"refresh_token": refresh_token})
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.session_state["access_token"] = data["access_token"]
@@ -537,7 +1061,7 @@ def _render_auth() -> None:
             st.text_input("Access Token", value=st.session_state["access_token"], disabled=True, key="session_access_token")
             st.text_input("Refresh Token", value=st.session_state.get("refresh_token", ""), disabled=True, key="session_refresh_token")
     else:
-        st.info("No active session. Log in above.")
+        st.markdown('<div class="aura-empty">\U0001f512 No active session.<br>Log in above to get started.</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -546,7 +1070,7 @@ def _render_auth() -> None:
 
 
 def _render_profile() -> None:
-    st.header("\U0001f464 Profile & Me")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f464 Profile & Me</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -554,7 +1078,8 @@ def _render_profile() -> None:
 
     with tab_me:
         if st.button("\U0001f50d Fetch /me", width="stretch"):
-            resp = _api_call("GET", "/me")
+            with st.spinner("Loading profile..."):
+                resp = _api_call("GET", "/me")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 profile = data.get("profile") or {}
@@ -640,14 +1165,14 @@ def _render_profile() -> None:
 
 
 def _render_chat() -> None:
-    st.header("\U0001f4ac Chat")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4ac <span class="gradient-text">Chat</span></h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
     tab_send, tab_convos = st.tabs(["Send Message", "Conversations"])
 
     with tab_send:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
 
         # --- Conversation selector ---
         convos = []
@@ -667,8 +1192,17 @@ def _render_chat() -> None:
 
         chat_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], index=0)
 
-        # --- File upload ---
-        st.markdown("**\U0001f4ce Attach a file (image or PDF)**")
+        # --- File upload (styled upload zone) ---
+        st.markdown('</div>', unsafe_allow_html=True)  # close aura-card for upload zone
+        st.markdown(
+            '<div class="aura-upload-zone">'
+            '<div class="aura-upload-zone-header">'
+            '<span class="upload-icon">\U0001f4ce</span>'
+            '<span class="upload-title">Attach a File</span><br>'
+            '<span class="upload-desc">Upload an image or PDF to include with your message</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         uploaded_chat_file = st.file_uploader(
             "Choose an image or PDF",
             type=["jpg", "jpeg", "png", "webp", "heic", "pdf"],
@@ -681,7 +1215,9 @@ def _render_chat() -> None:
             if uploaded_chat_file.type and uploaded_chat_file.type.startswith("image/"):
                 st.image(uploaded_chat_file, caption=uploaded_chat_file.name, width="stretch")
             else:
-                st.info(f"\U0001f4c4 {uploaded_chat_file.name} ({uploaded_chat_file.size:,} bytes)")
+                st.markdown(f'<div class="aura-empty">\U0001f4c4 {uploaded_chat_file.name} ({uploaded_chat_file.size:,} bytes)</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)  # close aura-upload-zone
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)  # reopen aura-card
 
         # --- Message input ---
         chat_msg = st.text_area("\u270f Message", height=100)
@@ -742,6 +1278,15 @@ def _render_chat() -> None:
                 response_text = ""
                 analysis_meta_info = None
                 error_info = None
+                typing_placeholder = st.empty()
+                typing_placeholder.markdown(
+                    '<div class="aura-chat-assistant">'
+                    '<div class="aura-typing">'
+                    '<span class="dot"></span><span class="dot"></span><span class="dot"></span>'
+                    ' Thinking...'
+                    '</div></div>',
+                    unsafe_allow_html=True,
+                )
                 with st.spinner("\U0001f4ac Streaming response..."):
                     with httpx.stream("POST", url, json=payload, headers=headers, timeout=120) as stream:
                         for line in stream.iter_lines():
@@ -777,11 +1322,26 @@ def _render_chat() -> None:
                 else:
                     st.markdown(f'<div class="aura-chat-user">{chat_msg}</div>', unsafe_allow_html=True)
 
-                # Show assistant bubble and errors
+                # Clear the typing indicator
+                typing_placeholder.empty()
+
+                # Show styled error messages
                 if error_info and error_info[0] == "quota":
-                    st.error(f"\u26a0 {error_info[1]}")
+                    st.markdown(
+                        f'<div class="aura-error-card">'
+                        f'<span class="error-icon">\u26a0\ufe0f</span>'
+                        f'<span class="error-msg">{error_info[1]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
                 elif error_info and error_info[0] == "analysis":
-                    st.warning(f"\u26a0 Analysis error: {error_info[1]}")
+                    st.markdown(
+                        f'<div class="aura-error-card">'
+                        f'<span class="error-icon">\u26a0\ufe0f</span>'
+                        f'<span class="error-msg">Analysis error: {error_info[1]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
                 if response_text:
                     st.markdown(f'<div class="aura-chat-assistant">{response_text}</div>', unsafe_allow_html=True)
@@ -791,8 +1351,12 @@ def _render_chat() -> None:
                     analysis_id = analysis_meta_info.get("analysis_id", "")
                     analysis_type = analysis_meta_info.get("analysis_type", "unknown")
                     st.markdown(
-                        _badge_html(f"Analysis: {analysis_type}", "badge-rose") +
-                        " " + _badge_html(f"ID: {analysis_id[:8]}...", "badge-info"),
+                        '<div class="glass-card" style="background:rgba(61,50,68,0.9);color:var(--aura-cream)">'
+                        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+                        f'{_badge_html(f"Analysis: {analysis_type}", "badge-rose")}'
+                        f'</div>'
+                        f'<small style="opacity:0.6">ID: {analysis_id[:8]}...</small>'
+                        '</div>',
                         unsafe_allow_html=True,
                     )
 
@@ -839,18 +1403,26 @@ def _render_chat() -> None:
                                             else:
                                                 st.markdown(f"**{k.replace('_', ' ').title()}:** {v}")
                                 elif status in ("pending", "processing"):
-                                    st.info("Analysis is still processing. Check the Analysis tab for results later.")
+                                    st.markdown('<div class="aura-empty">\u23f3 Analysis is still processing.<br>Check the Analysis tab for results later.</div>', unsafe_allow_html=True)
                             elif analysis_resp.status_code == 404:
-                                st.info("Analysis results not yet available. Check the Analysis tab later.")
+                                st.markdown('<div class="aura-empty">\U0001f52c Analysis results not yet available.<br>Check the Analysis tab later.</div>', unsafe_allow_html=True)
                 elif not error_info and not response_text:
-                    st.warning("No response received from the server.")
+                    st.markdown(
+                        '<div class="aura-error-card">'
+                        '<span class="error-icon">\u26a0\ufe0f</span>'
+                        '<span class="error-msg">No response received from the server.</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_convos:
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         col1, col2 = st.columns([3, 1])
         with col2:
             if st.button("\U0001f504 Refresh", width="stretch"):
-                resp = _api_call("GET", "/chat/conversations")
+                with st.spinner("Loading conversations..."):
+                    resp = _api_call("GET", "/chat/conversations")
                 if 200 <= resp.status_code < 300:
                     st.session_state["chat_convos"] = resp.json()
 
@@ -860,123 +1432,67 @@ def _render_chat() -> None:
                 title = c.get("title", "Untitled")
                 lang = c.get("language", "?")
                 msg_count = c.get("message_count", 0)
-                with st.expander(f"\U0001f4ac {title}"):
-                    st.markdown(
-                        _badge_html(lang.upper(), "badge-info") + " " +
-                        _badge_html(f"{msg_count} msgs", "badge-plum"),
-                        unsafe_allow_html=True,
-                    )
-                    st.caption(f"ID: {c['id'][:8]}... | Created: {c.get('created_at', '?')[:10]}")
+                created = c.get("created_at", "?")[:10]
+                convo_id_short = c["id"][:8]
 
-                    col_v, col_d = st.columns(2)
-                    with col_v:
-                        if st.button("\U0001f441 View", key=f"view_{c['id']}"):
+                st.markdown(
+                    f'<div class="aura-convo-card">'
+                    f'<div class="convo-title">\U0001f4ac {title}</div>'
+                    f'<div class="convo-meta">'
+                    f'<span class="pill-badge purple">{lang.upper()}</span> '
+                    f'<span class="pill-badge rose">{msg_count} msgs</span> '
+                    f'<span class="pill-badge gold">{created}</span>'
+                    f'</div>'
+                    f'<small style="color:var(--aura-plum-light);font-size:0.75rem">ID: {convo_id_short}...</small>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+                col_v, col_d = st.columns(2)
+                with col_v:
+                    if st.button("\U0001f441 View", key=f"view_{c['id']}"):
+                        with st.spinner("Loading messages..."):
                             resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
-                            if 200 <= resp.status_code < 300:
-                                msgs = resp.json()
-                                for m in msgs:
-                                    role = m.get("role", "unknown")
-                                    content = m.get("content", "")
-                                    cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
-                                    file_info = ""
-                                    if m.get("file_path"):
-                                        file_info = f'<br><small>\U0001f4ce {m["file_path"]}</small>'
-                                    st.markdown(f'<div class="{cls}">{content}{file_info}</div>', unsafe_allow_html=True)
-                            else:
-                                _display_response_rich(resp)
-                    with col_d:
-                        if st.button("\U0001f5d1 Delete", key=f"del_{c['id']}"):
-                            resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
+                        if 200 <= resp.status_code < 300:
+                            msgs = resp.json()
+                            for m in msgs:
+                                role = m.get("role", "unknown")
+                                content = m.get("content", "")
+                                ts = m.get("created_at", "")
+                                ts_display = f'<div style="font-size:0.7rem;opacity:0.6;margin-top:4px">{ts[:16]}</div>' if ts else ""
+                                cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
+                                file_info = ""
+                                if m.get("file_path"):
+                                    file_info = f'<br><small>\U0001f4ce {m["file_path"]}</small>'
+                                st.markdown(f'<div class="{cls}">{content}{file_info}{ts_display}</div>', unsafe_allow_html=True)
+                        else:
+                            _display_response_rich(resp)
+                with col_d:
+                    if st.button("\U0001f5d1 Delete", key=f"del_{c['id']}"):
+                        st.session_state[f"confirm_del_{c['id']}"] = True
+
+                # Delete confirmation
+                if st.session_state.get(f"confirm_del_{c['id']}", False):
+                    st.warning(f"Delete conversation \"{title}\"? This cannot be undone.")
+                    cf1, cf2 = st.columns(2)
+                    with cf1:
+                        if st.button("\u2705 Confirm Delete", key=f"cfm_{c['id']}"):
+                            with st.spinner("Deleting..."):
+                                resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
                             if 200 <= resp.status_code < 300:
                                 st.success("Deleted!")
                                 st.session_state.pop("chat_convos", None)
+                                st.session_state.pop(f"confirm_del_{c['id']}", None)
                             else:
                                 _display_response_rich(resp)
+                                st.session_state.pop(f"confirm_del_{c['id']}", None)
+                    with cf2:
+                        if st.button("\u274c Cancel", key=f"cnl_{c['id']}"):
+                            st.session_state.pop(f"confirm_del_{c['id']}", None)
         else:
-            st.info("No conversations yet. Click Refresh to load.")
-
-
-
-def _render_analysis() -> None:
-    st.header("\U0001f52c Analysis History")
-    if not _ensure_auth():
-        return
-
-    st.info("\U0001f4ac Skin and report analysis is now done in the **Chat** tab. Attach an image or PDF to any message and the AI will analyze it inline.")
-
-    tab_history, tab_upload_url = st.tabs(["History", "Upload URL (API)"])
-
-    with tab_history:
-        st.subheader("Past Analyses")
-        page_num = st.number_input("\U0001f4c3 Page", min_value=1, value=1, key="hist_page")
-        page_limit = st.number_input("Limit", min_value=1, max_value=50, value=10, key="hist_limit")
-        if st.button("\U0001f4da Load History", width="stretch"):
-            resp = _api_call("GET", "/analysis/history", params={"page": page_num, "limit": page_limit})
-            if 200 <= resp.status_code < 300:
-                data = resp.json()
-                analyses = data.get("analyses", [])
-                if analyses:
-                    for a in analyses:
-                        a_type = a.get("analysis_type", "?")
-                        a_status = a.get("status", "?")
-                        a_date = (a.get("created_at") or "")[:10]
-                        st.markdown(
-                            '<div class="aura-card">' +
-                            _analysis_status_badge(a_status) + " " +
-                            _badge_html(a_type.upper(), "badge-rose") + " " +
-                            _badge_html(a_date, "badge-info") +
-                            '</div>',
-                            unsafe_allow_html=True,
-                        )
-                        result = a.get("result")
-                        if result and isinstance(result, dict):
-                            with st.expander("\U0001f52c Results"):
-                                for k, v in result.items():
-                                    if isinstance(v, list):
-                                        st.markdown(f"**{k.replace('_', ' ').title()}:**")
-                                        for item in v:
-                                            if isinstance(item, dict):
-                                                for ik, iv in item.items():
-                                                    st.markdown(f"- **{ik}:** {iv}")
-                                            else:
-                                                st.markdown(f"- {item}")
-                                    else:
-                                        st.markdown(f"**{k.replace('_', ' ').title()}:** {v}")
-                    with st.expander("Raw JSON"):
-                        st.json(data)
-                else:
-                    st.info("No analyses yet. Start a chat with an image or PDF to get your first analysis!")
-            else:
-                _display_response_rich(resp)
-
-    with tab_upload_url:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
-        st.subheader("Generate Upload URL")
-        st.caption("Use this to get a signed URL for direct file upload to Supabase Storage. Then attach the file in the Chat tab.")
-        with st.form("upload_url_form"):
-            file_name = st.text_input("\U0001f4c4 File Name", value="test.jpg")
-            content_type = st.selectbox("\U0001f4f7 Content Type", [
-                "image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"
-            ])
-            analysis_type = st.selectbox("\U0001f9ea Analysis Type", ["skin", "report"])
-            upload_submitted = st.form_submit_button("\U0001f517 Get Upload URL")
-
-        if upload_submitted:
-            resp = _api_call("POST", "/analysis/upload-url", json_data={
-                "file_name": file_name, "content_type": content_type, "analysis_type": analysis_type,
-            })
-            if 200 <= resp.status_code < 300:
-                data = resp.json()
-                st.success("Upload URL generated!")
-                st.code(data.get("upload_url", ""), language="http")
-                st.markdown(f'**File Path:** `{data.get("file_path", "")}`')
-                st.caption("Copy the file path and use it in the Chat tab to attach the file.")
-                st.session_state["analysis_file_path"] = data.get("file_path", "")
-                with st.expander("Raw JSON"):
-                    st.json(data)
-            else:
-                _display_response_rich(resp)
+            st.markdown('<div class="aura-empty">\U0001f4ac No conversations yet.<br>Click Refresh to load.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 # ---------------------------------------------------------------------------
@@ -985,7 +1501,7 @@ def _render_analysis() -> None:
 
 
 def _render_health_log() -> None:
-    st.header("\U0001f4c8 Health Log")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4c8 <span class="gradient-text">Health Log</span></h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -994,13 +1510,13 @@ def _render_health_log() -> None:
     )
 
     with tab_upsert:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Create / Update Log Entry")
         with st.form("health_log_form"):
             hl_date = st.date_input("\U0001f4c5 Date", value=date.today())
             hl_mood = st.slider("\U0001f60a Mood (1-10)", 1, 10, value=5)
-            hl_energy = st.slider("\U0001f50b Energy (1-10)", 1, 10, value=5)
-            hl_sleep = st.slider("\U0001f319 Sleep Hours (0-24)", 0.0, 24.0, value=7.0, step=0.5)
+            hl_energy = st.slider("\u26a1 Energy (1-10)", 1, 10, value=5)
+            hl_sleep = st.slider("\U0001f634 Sleep Hours (0-24)", 0.0, 24.0, value=7.0, step=0.5)
             hl_water = st.number_input("\U0001f4a7 Water (ml)", min_value=0, value=0)
             hl_exercise = st.number_input("\U0001f3cb Exercise (minutes)", min_value=0, value=0)
             hl_symptoms = st.text_input("\U0001f3e5 Symptoms (comma-separated)")
@@ -1030,34 +1546,84 @@ def _render_health_log() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Recent Logs")
         hl_days = st.number_input("\U0001f4c5 Days", min_value=1, max_value=365, value=30, key="hl_days")
         if st.button("\U0001f4da Load Logs", width="stretch"):
-            resp = _api_call("GET", "/health-log", params={"days": hl_days})
-            _display_response_rich(resp)
+            with st.spinner("Loading logs..."):
+                resp = _api_call("GET", "/health-log", params={"days": hl_days})
+            if 200 <= resp.status_code < 300:
+                logs = resp.json()
+                if isinstance(logs, list) and logs:
+                    for log in logs:
+                        log_date = log.get("log_date", "?")
+                        mood = log.get("mood", "?")
+                        energy = log.get("energy", "?")
+                        sleep = log.get("sleep_hours", "?")
+                        symptoms = log.get("symptoms", [])
+
+                        # Mood indicator class
+                        if isinstance(mood, (int, float)):
+                            mood_cls = "low" if mood <= 3 else ("medium" if mood <= 6 else "high")
+                            mood_display = f'<span class="mood-indicator {mood_cls}">\U0001f60a {mood}/10</span>'
+                        else:
+                            mood_display = f'<span class="mood-indicator medium">\U0001f60a {mood}</span>'
+
+                        # Symptoms as pill badges
+                        symptom_html = ""
+                        if symptoms and isinstance(symptoms, list):
+                            symptom_html = " ".join(f'<span class="pill-badge rose">{s}</span>' for s in symptoms)
+
+                        st.markdown(f"""
+                        <div class="log-entry">
+                          <div style="display:flex;justify-content:space-between;align-items:center">
+                            <div class="log-date">\U0001f4c5 {log_date}</div>
+                            {mood_display}
+                          </div>
+                          <div class="log-details">
+                            \u26a1 Energy: <strong>{energy}</strong>/10 &nbsp;\U0001f634 Sleep: <strong>{sleep}</strong>h
+                          </div>
+                          {'<div style="margin-top:6px">' + symptom_html + '</div>' if symptom_html else ''}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with st.expander("Raw JSON"):
+                        st.json(logs)
+                else:
+                    _display_response_rich(resp)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_summary:
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("\U0001f4ca Health Summary & Charts")
         summary_days = st.slider("\U0001f4c5 Days", min_value=7, max_value=90, value=30, key="summary_days")
         if st.button("\U0001f504 Load Summary", width="stretch"):
-            resp = _api_call("GET", "/health-log/summary", params={"days": summary_days})
+            with st.spinner("Loading summary..."):
+                resp = _api_call("GET", "/health-log/summary", params={"days": summary_days})
             if 200 <= resp.status_code < 300:
                 data = resp.json()
 
-                # Metric cards
-                col1, col2, col3 = st.columns(3)
-                col1.markdown(
-                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
-                    f'<div class="metric-value">{data.get("entry_count",0)}</div>'
-                    f'<div class="metric-label">Days Tracked</div></div>', unsafe_allow_html=True)
-                col2.markdown(
-                    f'<div class="aura-metric"><div class="metric-icon">\U0001f3cb</div>'
-                    f'<div class="metric-value">{data.get("exercise_total_minutes",0)}</div>'
-                    f'<div class="metric-label">Total Exercise (min)</div></div>', unsafe_allow_html=True)
-                col3.markdown(
-                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4a7</div>'
-                    f'<div class="metric-value">{round(data.get("water_avg_ml",0))}</div>'
-                    f'<div class="metric-label">Avg Water (ml)</div></div>', unsafe_allow_html=True)
+                # Stat cards with gradient text
+                st.markdown(f"""
+                <div class="admin-grid">
+                  <div class="stat-card rose">
+                    <div class="stat-icon">\U0001f4c5</div>
+                    <div class="stat-value">{data.get('entry_count', 0)}</div>
+                    <div class="stat-label">Days Tracked</div>
+                  </div>
+                  <div class="stat-card green">
+                    <div class="stat-icon">\U0001f3cb</div>
+                    <div class="stat-value">{data.get('exercise_total_minutes', 0)}</div>
+                    <div class="stat-label">Total Exercise (min)</div>
+                  </div>
+                  <div class="stat-card blue">
+                    <div class="stat-icon">\U0001f4a7</div>
+                    <div class="stat-value">{round(data.get('water_avg_ml', 0))}</div>
+                    <div class="stat-label">Avg Water (ml)</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
 
                 # Mood trend
                 mood_trend = data.get("mood_trend", [])
@@ -1125,19 +1691,22 @@ def _render_health_log() -> None:
                     st.plotly_chart(fig, width="stretch")
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_date:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
         st.subheader("Get / Delete by Date")
         lookup_date = st.date_input("\U0001f4c5 Date", value=date.today(), key="hl_lookup_date")
         col_get, col_del = st.columns(2)
         with col_get:
             if st.button("\U0001f50d Get Log", width="stretch"):
-                resp = _api_call("GET", f"/health-log/{lookup_date}")
+                with st.spinner("Loading log..."):
+                    resp = _api_call("GET", f"/health-log/{lookup_date}")
                 _display_response_rich(resp)
         with col_del:
             if st.button("\U0001f5d1 Delete Log", width="stretch"):
-                resp = _api_call("DELETE", f"/health-log/{lookup_date}")
+                with st.spinner("Deleting log..."):
+                    resp = _api_call("DELETE", f"/health-log/{lookup_date}")
                 _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1148,7 +1717,7 @@ def _render_health_log() -> None:
 
 
 def _render_subscriptions() -> None:
-    st.header("\U0001f4b3 Subscriptions")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4b3 Subscriptions</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1158,7 +1727,8 @@ def _render_subscriptions() -> None:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Subscription Status")
         if st.button("\U0001f50d Check Status", width="stretch"):
-            resp = _api_call("GET", "/subscribe/status")
+            with st.spinner("Checking subscription..."):
+                resp = _api_call("GET", "/subscribe/status")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 tier = data.get("tier", "free")
@@ -1177,9 +1747,10 @@ def _render_subscriptions() -> None:
     with tab_checkout:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("\u2728 Upgrade to Premium")
-        st.info("This will create a Stripe Checkout session and return a redirect URL.")
+        st.markdown('<div class="aura-empty">\U0001f4b3 This will create a Stripe Checkout session and return a redirect URL.</div>', unsafe_allow_html=True)
         if st.button("\U0001f680 Start Premium Checkout", width="stretch"):
-            resp = _api_call("POST", "/subscribe/checkout")
+            with st.spinner("Creating checkout..."):
+                resp = _api_call("POST", "/subscribe/checkout")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 url = data.get("url", data.get("checkout_url", ""))
@@ -1214,7 +1785,7 @@ STATE_COLORS = {
 
 
 def _render_tickets() -> None:
-    st.header("\U0001f3ab Tickets")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f3ab Tickets</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1250,10 +1821,13 @@ def _render_tickets() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("My Tickets")
         if st.button("\U0001f504 Load Tickets", width="stretch"):
-            resp = _api_call("GET", "/tickets")
+            with st.spinner("Loading tickets..."):
+                resp = _api_call("GET", "/tickets")
             _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_detail:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
@@ -1263,7 +1837,8 @@ def _render_tickets() -> None:
             if not detail_id:
                 st.warning("Enter a ticket ID.")
             else:
-                resp = _api_call("GET", f"/tickets/{detail_id}")
+                with st.spinner("Loading ticket..."):
+                    resp = _api_call("GET", f"/tickets/{detail_id}")
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.markdown(f'**{data.get("subject","")}**')
@@ -1325,7 +1900,7 @@ def _render_tickets() -> None:
                             else:
                                 _display_response_rich(resp)
                 else:
-                    st.info("No transitions available (terminal state).")
+                    st.markdown('<div class="aura-empty">\u2705 No transitions available (terminal state).</div>', unsafe_allow_html=True)
             elif resp.status_code == 404:
                 st.warning("Ticket not found.")
 
@@ -1338,7 +1913,7 @@ def _render_tickets() -> None:
 
 
 def _render_wellness() -> None:
-    st.header("\U0001f338 Wellness Plans")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f338 Wellness Plans</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1355,7 +1930,8 @@ def _render_wellness() -> None:
         )
         wellness_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], key="wellness_lang")
         if st.button("\U0001f9ed Generate", width="stretch"):
-            resp = _api_call("POST", "/wellness/plan", json_data={"language": wellness_lang})
+            with st.spinner("Generating wellness plan..."):
+                resp = _api_call("POST", "/wellness/plan", json_data={"language": wellness_lang})
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 st.success("\u2705 Plan generated!")
@@ -1377,9 +1953,11 @@ def _render_wellness() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("My Wellness Plans")
         if st.button("\U0001f504 Load Plans", width="stretch"):
-            resp = _api_call("GET", "/wellness/plans")
+            with st.spinner("Loading plans..."):
+                resp = _api_call("GET", "/wellness/plans")
             if 200 <= resp.status_code < 300:
                 plans = resp.json()
                 if plans:
@@ -1396,9 +1974,10 @@ def _render_wellness() -> None:
                     with st.expander("Raw JSON"):
                         st.json(plans)
                 else:
-                    st.info("No plans yet.")
+                    st.markdown('<div class="aura-empty">\U0001f338 No plans yet.<br>Generate your first wellness plan!</div>', unsafe_allow_html=True)
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_detail:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
@@ -1408,7 +1987,8 @@ def _render_wellness() -> None:
             if not plan_id:
                 st.warning("Enter a plan ID.")
             else:
-                resp = _api_call("GET", f"/wellness/plans/{plan_id}")
+                with st.spinner("Loading plan..."):
+                    resp = _api_call("GET", f"/wellness/plans/{plan_id}")
                 if 200 <= resp.status_code < 300:
                     data = resp.json()
                     st.subheader(data.get("title", "Wellness Plan"))
@@ -1431,6 +2011,390 @@ def _render_wellness() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Cycle Tracker Page
+# ---------------------------------------------------------------------------
+
+
+CYCLE_SYMPTOMS = [
+    "cramps", "headache", "bloating", "fatigue", "back pain",
+    "acne", "mood swings", "breast tenderness", "nausea", "insomnia",
+]
+
+
+def _render_cycle_tracker() -> None:
+    st.markdown('<div class="aura-page-header"><h1>\U0001f338 Cycle Tracker</h1></div>', unsafe_allow_html=True)
+    if not _ensure_auth():
+        return
+
+    tab_log, tab_cycles, tab_prediction = st.tabs(
+        ["Log Period", "My Cycles", "Prediction"]
+    )
+
+    with tab_log:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("Log a Period Cycle")
+        with st.form("cycle_log_form"):
+            cl_start = st.date_input("\U0001f4c5 Start Date", value=date.today(), key="cl_start")
+            cl_end = st.date_input("\U0001f4c5 End Date (optional)", value=None, key="cl_end")
+            cl_cycle_len = st.number_input("\U0001f504 Cycle Length (days)", min_value=14, max_value=45, value=28)
+            cl_period_len = st.number_input("\U0001f4a5 Period Length (days)", min_value=1, max_value=14, value=5)
+            cl_mood = st.slider("\U0001f60a Mood (1-10)", 1, 10, value=5, key="cl_mood")
+            cl_symptoms = st.multiselect("\U0001f3e5 Symptoms", CYCLE_SYMPTOMS, key="cl_symptoms")
+            cl_notes = st.text_area("\U0001f4dd Notes", height=80, key="cl_notes")
+            cl_submitted = st.form_submit_button("\u2705 Log Cycle")
+
+        if cl_submitted:
+            data: dict = {"start_date": str(cl_start), "cycle_length": cl_cycle_len, "period_length": cl_period_len}
+            if cl_end:
+                data["end_date"] = str(cl_end)
+            data["mood"] = cl_mood
+            if cl_symptoms:
+                data["symptoms"] = cl_symptoms
+            if cl_notes.strip():
+                data["notes"] = cl_notes
+
+            resp = _api_call("POST", "/cycles", json_data=data)
+            if 200 <= resp.status_code < 300:
+                st.success("\u2705 Cycle logged!")
+                with st.expander("Raw JSON"):
+                    st.json(resp.json())
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_cycles:
+        st.subheader("My Cycles")
+        col_page, col_limit, col_load = st.columns([1, 1, 1])
+        with col_page:
+            cycle_page = st.number_input("\U0001f4c4 Page", min_value=1, value=1, key="cycle_page")
+        with col_limit:
+            cycle_limit = st.number_input("\U0001f4c4 Limit", min_value=1, max_value=100, value=10, key="cycle_limit")
+        with col_load:
+            st.markdown("<br>", unsafe_allow_html=True)
+            load_clicked = st.button("\U0001f504 Load Cycles", width="stretch")
+
+        if load_clicked:
+            with st.spinner("Loading cycles..."):
+                resp = _api_call("GET", "/cycles", params={"page": cycle_page, "limit": cycle_limit})
+            if 200 <= resp.status_code < 300:
+                cycles = resp.json()
+                if isinstance(cycles, list) and cycles:
+                    for c in cycles:
+                        cycle_id = c.get("id", "")
+                        with st.expander(
+                            f"\U0001f4c5 {c.get('start_date', '?')} \u2192 {c.get('end_date', 'ongoing')}"
+                        ):
+                            col1, col2, col3 = st.columns(3)
+                            col1.markdown(
+                                f'<div class="aura-metric"><div class="metric-value">{c.get("cycle_length", "?")}</div>'
+                                f'<div class="metric-label">Cycle Length</div></div>', unsafe_allow_html=True)
+                            col2.markdown(
+                                f'<div class="aura-metric"><div class="metric-value">{c.get("period_length", "?")}</div>'
+                                f'<div class="metric-label">Period Length</div></div>', unsafe_allow_html=True)
+                            col3.markdown(
+                                f'<div class="aura-metric"><div class="metric-value">{c.get("mood", "?")}</div>'
+                                f'<div class="metric-label">Mood</div></div>', unsafe_allow_html=True)
+
+                            symptoms = c.get("symptoms", [])
+                            if symptoms:
+                                st.markdown(
+                                    "**Symptoms:** " + " ".join(_badge_html(s, "badge-rose") for s in symptoms),
+                                    unsafe_allow_html=True,
+                                )
+                            if c.get("notes"):
+                                st.caption(f"\U0001f4dd {c['notes']}")
+
+                            if st.button(f"\U0001f5d1 Delete", key=f"del_cycle_{cycle_id}"):
+                                with st.spinner("Deleting..."):
+                                    del_resp = _api_call("DELETE", f"/cycles/{cycle_id}")
+                                if 200 <= del_resp.status_code < 300:
+                                    st.success("Cycle deleted!")
+                                    st.rerun()
+                                else:
+                                    _display_response_rich(del_resp)
+
+                            st.caption(f"ID: `{cycle_id[:8]}...`")
+                    with st.expander("Raw JSON"):
+                        st.json(cycles)
+                elif isinstance(cycles, list):
+                    st.markdown('<div class="aura-empty">\U0001f338 No cycles found.<br>Log your first period!</div>', unsafe_allow_html=True)
+                else:
+                    _display_response_rich(resp)
+            else:
+                _display_response_rich(resp)
+
+    with tab_prediction:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("\U0001f52e Period Prediction")
+        if st.button("\U0001f50d Get Prediction", width="stretch"):
+            with st.spinner("Calculating prediction..."):
+                resp = _api_call("GET", "/cycles/prediction")
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                col1, col2, col3 = st.columns(3)
+                col1.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
+                    f'<div class="metric-value">{data.get("next_period_start", "?")}</div>'
+                    f'<div class="metric-label">Next Period Start</div></div>', unsafe_allow_html=True)
+                col2.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
+                    f'<div class="metric-value">{data.get("next_period_end", "?")}</div>'
+                    f'<div class="metric-label">Next Period End</div></div>', unsafe_allow_html=True)
+                col3.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\u23f3</div>'
+                    f'<div class="metric-value">{data.get("days_until_next", "?")}</div>'
+                    f'<div class="metric-label">Days Until Next</div></div>', unsafe_allow_html=True)
+
+                phase = data.get("current_phase", "")
+                phase_desc = data.get("phase_description", "")
+                if phase:
+                    st.markdown(
+                        f'<div class="aura-card-dark" style="text-align:center">'
+                        f'<span style="font-size:1.5rem">\U0001f338 {phase.replace("_", " ").title()}</span><br>'
+                        f'<span style="opacity:0.85">{phase_desc}</span></div>',
+                        unsafe_allow_html=True,
+                    )
+
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            elif resp.status_code == 404:
+                st.markdown('<div class="aura-empty">\U0001f338 No cycles logged yet.<br>Log your first period to get predictions!</div>', unsafe_allow_html=True)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# Admin Page
+# ---------------------------------------------------------------------------
+
+# Admin emails that can access this page (must match ADMIN_EMAILS env var)
+_ADMIN_EMAILS = [
+    "osama@aura.health",
+    "admin@aura.health",
+]
+
+
+def _render_admin() -> None:
+    st.markdown('<div class="aura-page-header"><h1>\U0001f511 <span class="gradient-text">Admin Dashboard</span></h1></div>', unsafe_allow_html=True)
+    if not _ensure_auth():
+        return
+
+    user_email = st.session_state.get("user_email", "").lower()
+    if user_email not in [e.lower() for e in _ADMIN_EMAILS]:
+        st.error("\u26a0 You do not have admin access.")
+        st.markdown('<div class="aura-empty">\U0001f511 This page is restricted to admin users.</div>', unsafe_allow_html=True)
+        return
+
+    tab_stats, tab_users, tab_interactions, tab_data = st.tabs(
+        ["Stats Overview", "Users", "Interactions", "Data Management"]
+    )
+
+    with tab_stats:
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
+        st.subheader("Platform Overview")
+        if st.button("\U0001f4ca Load Stats", width="stretch"):
+            with st.spinner("Loading stats..."):
+                resp = _api_call("GET", "/admin/stats")
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+
+                # Main stats grid
+                st.markdown(f"""
+                <div class="admin-grid">
+                  <div class="stat-card rose">
+                    <div class="stat-icon">\U0001f465</div>
+                    <div class="stat-value">{data.get('users', 0)}</div>
+                    <div class="stat-label">Users</div>
+                  </div>
+                  <div class="stat-card purple">
+                    <div class="stat-icon">\U0001f4ac</div>
+                    <div class="stat-value">{data.get('conversations', 0)}</div>
+                    <div class="stat-label">Conversations</div>
+                  </div>
+                  <div class="stat-card blue">
+                    <div class="stat-icon">\U0001f4e8</div>
+                    <div class="stat-value">{data.get('messages', 0)}</div>
+                    <div class="stat-label">Messages</div>
+                  </div>
+                </div>
+                <div class="admin-grid">
+                  <div class="stat-card green">
+                    <div class="stat-icon">\U0001f52c</div>
+                    <div class="stat-value">{data.get('analyses', 0)}</div>
+                    <div class="stat-label">Analyses</div>
+                  </div>
+                  <div class="stat-card rose">
+                    <div class="stat-icon">\U0001f338</div>
+                    <div class="stat-value">{data.get('cycle_entries', 0)}</div>
+                    <div class="stat-label">Cycle Entries</div>
+                  </div>
+                  <div class="stat-card gold">
+                    <div class="stat-icon">\U0001f4c8</div>
+                    <div class="stat-value">{data.get('health_logs', 0)}</div>
+                    <div class="stat-label">Health Logs</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # AI Interactions as bar chart
+                interactions = data.get("ai_interactions", {})
+                total_int = interactions.get("total", 0)
+                max_val = max(interactions.get("chat", 0), interactions.get("skin", 0),
+                              interactions.get("report", 0), 1)
+                chat_pct = min(int(interactions.get("chat", 0) / max_val * 100), 100) if max_val else 0
+                skin_pct = min(int(interactions.get("skin", 0) / max_val * 100), 100) if max_val else 0
+                report_pct = min(int(interactions.get("report", 0) / max_val * 100), 100) if max_val else 0
+
+                st.markdown('<div class="aura-section-title">AI Interactions</div>', unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="interaction-bar-wrap">
+                  <div class="interaction-bar-label">\U0001f4ac Chat — {interactions.get('chat', 0)}</div>
+                  <div class="interaction-bar"><div class="interaction-bar-fill chat" style="width:{chat_pct}%">{interactions.get('chat', 0)}</div></div>
+                </div>
+                <div class="interaction-bar-wrap">
+                  <div class="interaction-bar-label">\U0001f9b4 Skin — {interactions.get('skin', 0)}</div>
+                  <div class="interaction-bar"><div class="interaction-bar-fill skin" style="width:{skin_pct}%">{interactions.get('skin', 0)}</div></div>
+                </div>
+                <div class="interaction-bar-wrap">
+                  <div class="interaction-bar-label">\U0001f4c4 Report — {interactions.get('report', 0)}</div>
+                  <div class="interaction-bar"><div class="interaction-bar-fill report" style="width:{report_pct}%">{interactions.get('report', 0)}</div></div>
+                </div>
+                <div style="text-align:center;margin-top:12px">
+                  <div class="stat-card total" style="display:inline-block;padding:12px 24px">
+                    <div class="stat-icon">\U0001f4ca</div>
+                    <div class="stat-value">{total_int}</div>
+                    <div class="stat-label">Total Interactions</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Subscriptions
+                subs = data.get("subscriptions", {})
+                st.markdown('<div class="aura-section-title">Subscriptions</div>', unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="admin-grid" style="grid-template-columns: repeat(2, 1fr);">
+                  <div class="stat-card purple">
+                    <div class="stat-icon">\U0001f193</div>
+                    <div class="stat-value">{subs.get('free', 0)}</div>
+                    <div class="stat-label">Free</div>
+                  </div>
+                  <div class="stat-card gold">
+                    <div class="stat-icon">\u2b50</div>
+                    <div class="stat-value">{subs.get('premium', 0)}</div>
+                    <div class="stat-label">Premium</div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_users:
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
+        st.subheader("Users")
+        search_email = st.text_input("\U0001f50d Search by email", key="admin_user_search")
+        page_num = st.number_input("Page", min_value=1, value=1, key="admin_users_page")
+        page_limit = st.number_input("Limit", min_value=1, max_value=100, value=20, key="admin_users_limit")
+
+        if st.button("\U0001f4da Load Users", width="stretch"):
+            params = {"page": page_num, "limit": page_limit}
+            if search_email:
+                params["search"] = search_email
+            with st.spinner("Loading users..."):
+                resp = _api_call("GET", "/admin/users", params=params)
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                users = data.get("users", [])
+                if users:
+                    st.caption(f"Showing {len(users)} users (Page {data.get('page', 1)})")
+                    users_html = ""
+                    for u in users:
+                        email = u.get("email", "Unknown")
+                        tier = u.get("subscription_tier", u.get("tier", "free"))
+                        created = u.get("created_at", "?")[:10] if u.get("created_at") else "?"
+                        tier_cls = "purple" if tier == "premium" else "rose"
+                        users_html += f"""
+                        <div class="user-card">
+                          <div class="user-email">\U0001f464 {email}</div>
+                          <div class="user-meta">
+                            <span class="pill-badge {tier_cls}">{tier.upper()}</span>
+                            &nbsp;\U0001f4c5 {created}
+                          </div>
+                        </div>"""
+                    st.markdown(users_html, unsafe_allow_html=True)
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    st.markdown('<div class="aura-empty">\U0001f464 No users found.</div>', unsafe_allow_html=True)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_interactions:
+        st.markdown('<div class="glass-card animate-in">', unsafe_allow_html=True)
+        st.subheader("AI Interaction Analytics")
+        days = st.number_input("Days to look back", min_value=1, max_value=365, value=30, key="admin_interactions_days")
+        if st.button("\U0001f4c8 Load Interactions", width="stretch"):
+            with st.spinner("Loading interactions..."):
+                resp = _api_call("GET", "/admin/interactions", params={"days": days})
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                daily = data.get("daily", [])
+                if daily:
+                    st.caption(f"Last {days} days of interactions ({len(daily)} records)")
+
+                    # Compute max for bar widths
+                    max_count = max((e.get("count", 0) for e in daily), default=1)
+                    entries_html = ""
+                    for entry in daily:
+                        date_str = entry.get("date", "")
+                        itype = entry.get("interaction_type", "")
+                        count = entry.get("count", 0)
+                        pct = min(int(count / max_count * 100), 100) if max_count else 0
+                        bar_cls = {"chat": "chat", "skin": "skin", "report": "report"}.get(itype, "total")
+                        pill_cls = {"chat": "purple", "skin": "blue", "report": "green"}.get(itype, "gold")
+                        entries_html += f"""
+                        <div class="data-row">
+                          <div class="data-key">{date_str} <span class="pill-badge {pill_cls}">{itype}</span></div>
+                          <div class="data-value">{count}</div>
+                        </div>"""
+
+                    st.markdown(entries_html, unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="aura-empty">\U0001f4ca No interaction data found for this period.</div>', unsafe_allow_html=True)
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_data:
+        st.markdown('<div class="danger-zone animate-in">', unsafe_allow_html=True)
+        st.markdown('<div class="danger-title">\u26a0 Data Management</div>', unsafe_allow_html=True)
+        st.markdown('<div class="danger-text">This will permanently delete ALL application data for a user. Their account and subscription will NOT be deleted.</div>', unsafe_allow_html=True)
+
+        user_id_input = st.text_input("User ID to delete data for", key="admin_delete_user_id")
+        if st.button("\U0001f5d1 Delete All User Data", type="primary", width="stretch"):
+            if not user_id_input:
+                st.error("Please enter a User ID.")
+            else:
+                with st.spinner("Deleting user data..."):
+                    resp = _api_call("DELETE", f"/admin/data/{user_id_input}")
+                if 200 <= resp.status_code < 300:
+                    data = resp.json()
+                    tables_cleared = data.get("tables_cleared", [])
+                    st.success(f"\u2705 Deleted all data for user {user_id_input}")
+                    st.write(f"Tables cleared: {', '.join(tables_cleared)}")
+                else:
+                    _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1438,11 +2402,12 @@ PAGES = {
     "Auth": _render_auth,
     "Profile & Me": _render_profile,
     "Chat": _render_chat,
-    "Analysis": _render_analysis,
+    "Cycle Tracker": _render_cycle_tracker,
     "Health Log": _render_health_log,
     "Subscriptions": _render_subscriptions,
     "Tickets": _render_tickets,
     "Wellness": _render_wellness,
+    "Admin": _render_admin,
 }
 
 st.set_page_config(

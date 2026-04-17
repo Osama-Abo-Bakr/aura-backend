@@ -43,3 +43,10 @@ ANALYSIS_FOLLOWUP_TEMPLATE = (
     "{analysis_result}\n\n"
     "Reference this when answering follow-up questions. Be specific about the findings."
 )
+
+CYCLE_CONTEXT_TEMPLATE = (
+    "Menstrual cycle context:\n{cycle_info}\n\n"
+    "Use this naturally when giving wellness advice, symptom suggestions, or health guidance. "
+    "Adjust tone and recommendations based on the cycle phase. "
+    "Never assume or invent cycle data — only use what's provided above."
+)

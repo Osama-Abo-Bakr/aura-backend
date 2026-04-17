@@ -194,7 +194,7 @@ async def explain_medical_report(
         notes: Optional user-provided context.
 
     Returns:
-        Parsed result dict matching the ReportAnalysisResponse schema.
+        Parsed result dict with report analysis findings.
     """
     model = genai.GenerativeModel(VISION_MODEL)
     lang = "Arabic" if language == "ar" else "English"
