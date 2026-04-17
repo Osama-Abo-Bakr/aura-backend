@@ -39,6 +39,7 @@ NAV_ITEMS = [
     ("\U0001f512", "Auth"),
     ("\U0001f464", "Profile & Me"),
     ("\U0001f4ac", "Chat"),
+    ("\U0001f338", "Cycle Tracker"),
     ("\U0001f4c8", "Health Log"),
     ("\U0001f4b3", "Subscriptions"),
     ("\U0001f3ab", "Tickets"),
@@ -1348,6 +1349,157 @@ def _render_wellness() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Cycle Tracker Page
+# ---------------------------------------------------------------------------
+
+
+CYCLE_SYMPTOMS = [
+    "cramps", "headache", "bloating", "fatigue", "back pain",
+    "acne", "mood swings", "breast tenderness", "nausea", "insomnia",
+]
+
+
+def _render_cycle_tracker() -> None:
+    st.header("\U0001f338 Cycle Tracker")
+    if not _ensure_auth():
+        return
+
+    tab_log, tab_cycles, tab_prediction = st.tabs(
+        ["Log Period", "My Cycles", "Prediction"]
+    )
+
+    with tab_log:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("Log a Period Cycle")
+        with st.form("cycle_log_form"):
+            cl_start = st.date_input("\U0001f4c5 Start Date", value=date.today(), key="cl_start")
+            cl_end = st.date_input("\U0001f4c5 End Date (optional)", value=None, key="cl_end")
+            cl_cycle_len = st.number_input("\U0001f504 Cycle Length (days)", min_value=14, max_value=45, value=28)
+            cl_period_len = st.number_input("\U0001f4a5 Period Length (days)", min_value=1, max_value=14, value=5)
+            cl_mood = st.slider("\U0001f60a Mood (1-10)", 1, 10, value=5, key="cl_mood")
+            cl_symptoms = st.multiselect("\U0001f3e5 Symptoms", CYCLE_SYMPTOMS, key="cl_symptoms")
+            cl_notes = st.text_area("\U0001f4dd Notes", height=80, key="cl_notes")
+            cl_submitted = st.form_submit_button("\u2705 Log Cycle")
+
+        if cl_submitted:
+            data: dict = {"start_date": str(cl_start), "cycle_length": cl_cycle_len, "period_length": cl_period_len}
+            if cl_end:
+                data["end_date"] = str(cl_end)
+            data["mood"] = cl_mood
+            if cl_symptoms:
+                data["symptoms"] = cl_symptoms
+            if cl_notes.strip():
+                data["notes"] = cl_notes
+
+            resp = _api_call("POST", "/cycles", json_data=data)
+            if 200 <= resp.status_code < 300:
+                st.success("\u2705 Cycle logged!")
+                with st.expander("Raw JSON"):
+                    st.json(resp.json())
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_cycles:
+        st.subheader("My Cycles")
+        col_page, col_limit, col_load = st.columns([1, 1, 1])
+        with col_page:
+            cycle_page = st.number_input("\U0001f4c4 Page", min_value=1, value=1, key="cycle_page")
+        with col_limit:
+            cycle_limit = st.number_input("\U0001f4c4 Limit", min_value=1, max_value=100, value=10, key="cycle_limit")
+        with col_load:
+            st.markdown("<br>", unsafe_allow_html=True)
+            load_clicked = st.button("\U0001f504 Load Cycles", width="stretch")
+
+        if load_clicked:
+            resp = _api_call("GET", "/cycles", params={"page": cycle_page, "limit": cycle_limit})
+            if 200 <= resp.status_code < 300:
+                cycles = resp.json()
+                if isinstance(cycles, list) and cycles:
+                    for c in cycles:
+                        cycle_id = c.get("id", "")
+                        with st.expander(
+                            f"\U0001f4c5 {c.get('start_date', '?')} \u2192 {c.get('end_date', 'ongoing')}"
+                        ):
+                            col1, col2, col3 = st.columns(3)
+                            col1.markdown(
+                                f'<div class="aura-metric"><div class="metric-value">{c.get("cycle_length", "?")}</div>'
+                                f'<div class="metric-label">Cycle Length</div></div>', unsafe_allow_html=True)
+                            col2.markdown(
+                                f'<div class="aura-metric"><div class="metric-value">{c.get("period_length", "?")}</div>'
+                                f'<div class="metric-label">Period Length</div></div>', unsafe_allow_html=True)
+                            col3.markdown(
+                                f'<div class="aura-metric"><div class="metric-value">{c.get("mood", "?")}</div>'
+                                f'<div class="metric-label">Mood</div></div>', unsafe_allow_html=True)
+
+                            symptoms = c.get("symptoms", [])
+                            if symptoms:
+                                st.markdown(
+                                    "**Symptoms:** " + " ".join(_badge_html(s, "badge-rose") for s in symptoms),
+                                    unsafe_allow_html=True,
+                                )
+                            if c.get("notes"):
+                                st.caption(f"\U0001f4dd {c['notes']}")
+
+                            if st.button(f"\U0001f5d1 Delete", key=f"del_cycle_{cycle_id}"):
+                                del_resp = _api_call("DELETE", f"/cycles/{cycle_id}")
+                                if 200 <= del_resp.status_code < 300:
+                                    st.success("Cycle deleted!")
+                                    st.rerun()
+                                else:
+                                    _display_response_rich(del_resp)
+
+                            st.caption(f"ID: `{cycle_id[:8]}...`")
+                    with st.expander("Raw JSON"):
+                        st.json(cycles)
+                elif isinstance(cycles, list):
+                    st.info("No cycles found. Log your first period!")
+                else:
+                    _display_response_rich(resp)
+            else:
+                _display_response_rich(resp)
+
+    with tab_prediction:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+        st.subheader("\U0001f52e Period Prediction")
+        if st.button("\U0001f50d Get Prediction", width="stretch"):
+            resp = _api_call("GET", "/cycles/prediction")
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                col1, col2, col3 = st.columns(3)
+                col1.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
+                    f'<div class="metric-value">{data.get("next_period_start", "?")}</div>'
+                    f'<div class="metric-label">Next Period Start</div></div>', unsafe_allow_html=True)
+                col2.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\U0001f4c5</div>'
+                    f'<div class="metric-value">{data.get("next_period_end", "?")}</div>'
+                    f'<div class="metric-label">Next Period End</div></div>', unsafe_allow_html=True)
+                col3.markdown(
+                    f'<div class="aura-metric"><div class="metric-icon">\u23f3</div>'
+                    f'<div class="metric-value">{data.get("days_until_next", "?")}</div>'
+                    f'<div class="metric-label">Days Until Next</div></div>', unsafe_allow_html=True)
+
+                phase = data.get("current_phase", "")
+                phase_desc = data.get("phase_description", "")
+                if phase:
+                    st.markdown(
+                        f'<div class="aura-card-dark" style="text-align:center">'
+                        f'<span style="font-size:1.5rem">\U0001f338 {phase.replace("_", " ").title()}</span><br>'
+                        f'<span style="opacity:0.85">{phase_desc}</span></div>',
+                        unsafe_allow_html=True,
+                    )
+
+                with st.expander("Raw JSON"):
+                    st.json(data)
+            elif resp.status_code == 404:
+                st.info("No cycles logged yet. Log your first period to get predictions!")
+            else:
+                _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1355,6 +1507,7 @@ PAGES = {
     "Auth": _render_auth,
     "Profile & Me": _render_profile,
     "Chat": _render_chat,
+    "Cycle Tracker": _render_cycle_tracker,
     "Health Log": _render_health_log,
     "Subscriptions": _render_subscriptions,
     "Tickets": _render_tickets,
