@@ -21,6 +21,11 @@ RUN pip install --upgrade pip \
 # ---------------------------------------------------------------------------
 FROM python:3.11-slim AS runtime
 
+# Apply OS security patches (openssl CVE-2026-28390, etc.)
+# ncurses CVE-2025-69720 & systemd CVE-2026-29111 have no Debian fix yet
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user for security
 RUN addgroup --system aura && adduser --system --ingroup aura aura
 
