@@ -69,6 +69,7 @@ Tone: warm, empathetic, non-judgmental, and professional.
 async def stream_chat_response(
     messages: list[dict],
     language: str = "ar",
+    system_prompt_override: str | None = None,
 ) -> AsyncIterator[str]:
     """
     Stream a conversational health Q&A response via Gemini 2.0 Flash using SSE.
@@ -79,13 +80,15 @@ async def stream_chat_response(
             The last message is sent as the new turn; all prior messages
             become the chat history (Gemini roles: "user" / "model").
         language: 'ar' or 'en' — hints the model to respond in the right language.
+        system_prompt_override: If provided, replaces the default HEALTH_SYSTEM_PROMPT.
 
     Yields:
         Text chunks as they arrive from the Gemini streaming API.
     """
+    system_prompt = system_prompt_override or HEALTH_SYSTEM_PROMPT
     model = genai.GenerativeModel(
         model_name=FLASH_MODEL,
-        system_instruction=HEALTH_SYSTEM_PROMPT,
+        system_instruction=system_prompt,
     )
 
     # Convert messages to Gemini history format.

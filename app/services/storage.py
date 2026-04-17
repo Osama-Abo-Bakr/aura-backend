@@ -6,11 +6,15 @@ Week 2: real implementations of upload URL generation and file download.
 
 from __future__ import annotations
 
+import mimetypes
 import uuid
 
 import httpx
 
 from app.db.supabase import supabase_admin
+
+# Ensure mimetypes has common mappings initialised
+mimetypes.init()
 
 BUCKET = "analyses"
 
@@ -54,7 +58,7 @@ async def download_file(file_path: str) -> tuple[bytes, str]:
         file_path: Path of the file inside the bucket (no bucket prefix).
 
     Returns:
-        Tuple of (raw_bytes, content_type).
+        Tuple of (raw_bytes, mime_type).
     """
     signed = supabase_admin.storage.from_(BUCKET).create_signed_url(
         file_path, expires_in=300
@@ -64,5 +68,9 @@ async def download_file(file_path: str) -> tuple[bytes, str]:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(url)
         resp.raise_for_status()
-        content_type = resp.headers.get("content-type", "image/jpeg")
+        # Determine MIME type: prefer Content-Type header, fall back to extension.
+        content_type = resp.headers.get("content-type", "").split(";")[0].strip()
+        if not content_type or content_type == "application/octet-stream":
+            guessed, _ = mimetypes.guess_type(file_path)
+            content_type = guessed or "application/octet-stream"
         return resp.content, content_type
