@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.analysis import router as analysis_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.chat import router as chat_router
+from app.api.v1.cycles import router as cycles_router
 from app.api.v1.health_log import router as health_log_router
 from app.api.v1.subscriptions import router as subscriptions_router
 from app.api.v1.tickets import router as tickets_router
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/v1")
 router.include_router(auth_router, tags=["auth"])
 router.include_router(analysis_router, tags=["analysis"])
 router.include_router(chat_router, tags=["chat"])
+router.include_router(cycles_router, tags=["cycles"])
 router.include_router(subscriptions_router, tags=["subscriptions"])
 router.include_router(health_log_router, tags=["health-log"])
 router.include_router(tickets_router, tags=["tickets"])
