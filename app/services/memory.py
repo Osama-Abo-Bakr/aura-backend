@@ -130,3 +130,53 @@ def build_cycle_context(user_id: str) -> str:
         context += f" Reported symptoms this cycle: {', '.join(symptoms[:5])}."
 
     return context
+
+
+async def get_conversation_analysis(
+    conversation_id: str, user_id: str
+) -> tuple[dict | None, str | None]:
+    """Fetch the latest analysis from a conversation.
+
+    Queries the messages table for the latest message with an analysis_id,
+    then fetches the full analysis record from the analyses table.
+
+    Returns:
+        (result_dict, analysis_type) if found, (None, None) otherwise.
+    """
+    # Find the latest message with an analysis_id in this conversation
+    msgs_resp = (
+        supabase_admin.table("messages")
+        .select("analysis_id")
+        .eq("conversation_id", conversation_id)
+        .eq("user_id", user_id)
+        .is_("analysis_id", "not_null")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not msgs_resp.data:
+        return None, None
+
+    analysis_id = msgs_resp.data[0].get("analysis_id")
+
+    # Fetch the analysis record
+    analysis_resp = (
+        supabase_admin.table("analyses")
+        .select("analysis_type, result")
+        .eq("id", analysis_id)
+        .execute()
+    )
+
+    if not analysis_resp.data:
+        return None, None
+
+    analysis = analysis_resp.data[0]
+    result = analysis.get("result", {})
+    if isinstance(result, str):
+        try:
+            result = json.loads(result)
+        except json.JSONDecodeError:
+            result = {}
+
+    return result, analysis.get("analysis_type")
