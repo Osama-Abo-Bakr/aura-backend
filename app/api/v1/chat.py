@@ -260,7 +260,7 @@ async def get_conversation_analysis(
         .select("analysis_id")
         .eq("conversation_id", conversation_id)
         .eq("user_id", user_id)
-        .is_("analysis_id", "not.null")
+        .is_("analysis_id", "not_null")
         .order("created_at", desc=True)
         .limit(1)
         .execute()
