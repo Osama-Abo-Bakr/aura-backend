@@ -55,17 +55,18 @@ async def send_message(
             message=f"You've used all your {quota_type} credits this month.",
             interaction_type=quota_type,
         )
+
         async def quota_error_stream():
             yield f"data: {event.model_dump_json()}\n\n"
             yield "data: [DONE]\n\n"
+
         return StreamingResponse(quota_error_stream(), media_type="text/event-stream")
 
     # Get or create conversation
     conversation_id = str(request.conversation_id) if request.conversation_id else None
     if conversation_id:
         conv_resp = (
-            supabase_admin
-            .table("conversations")
+            supabase_admin.table("conversations")
             .select("id")
             .eq("id", conversation_id)
             .eq("user_id", user_id)
@@ -76,8 +77,7 @@ async def send_message(
     else:
         title = request.content[:50] if request.content else "New Conversation"
         conv_resp = (
-            supabase_admin
-            .table("conversations")
+            supabase_admin.table("conversations")
             .insert({"user_id": user_id, "language": request.language, "title": title})
             .execute()
         )
@@ -100,8 +100,7 @@ async def send_message(
 
     # Load conversation history (last 20 messages)
     messages_resp = (
-        supabase_admin
-        .table("messages")
+        supabase_admin.table("messages")
         .select("role, content")
         .eq("conversation_id", conversation_id)
         .order("created_at", desc=True)
@@ -113,7 +112,9 @@ async def send_message(
     # Build file attachment if present
     current_file = None
     if request.file_path and request.file_type:
-        current_file = FileAttachment(file_path=request.file_path, file_type=request.file_type)
+        current_file = FileAttachment(
+            file_path=request.file_path, file_type=request.file_type
+        )
 
     # Build initial state
     initial_state = ConversationState(
@@ -176,14 +177,18 @@ async def send_message(
                 interaction_type = "skin"
             elif current_file and current_file.get("file_type") == "application/pdf":
                 interaction_type = "report"
-            supabase_admin.table("ai_interactions").insert({
-                "user_id": user_id,
-                "interaction_type": interaction_type,
-            }).execute()
+            supabase_admin.table("ai_interactions").insert(
+                {
+                    "user_id": user_id,
+                    "interaction_type": interaction_type,
+                }
+            ).execute()
 
         except Exception as e:
             logger.error(f"Chat graph error: {e}", exc_info=True)
-            error_event = AnalysisErrorEvent(message="An unexpected error occurred. Please try again.")
+            error_event = AnalysisErrorEvent(
+                message="An unexpected error occurred. Please try again."
+            )
             yield f"data: {error_event.model_dump_json()}\n\n"
 
         finally:
@@ -197,8 +202,7 @@ async def list_conversations(user: dict = Depends(get_current_user)):
     """List user's most recent conversations."""
     user_id = user["sub"]
     resp = (
-        supabase_admin
-        .table("conversations")
+        supabase_admin.table("conversations")
         .select("id, title, created_at")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
@@ -213,8 +217,7 @@ async def get_messages(conversation_id: str, user: dict = Depends(get_current_us
     """Get all messages in a conversation."""
     user_id = user["sub"]
     conv_resp = (
-        supabase_admin
-        .table("conversations")
+        supabase_admin.table("conversations")
         .select("id")
         .eq("id", conversation_id)
         .eq("user_id", user_id)
@@ -224,8 +227,7 @@ async def get_messages(conversation_id: str, user: dict = Depends(get_current_us
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     resp = (
-        supabase_admin
-        .table("messages")
+        supabase_admin.table("messages")
         .select("id, role, content, created_at, file_path, file_type, analysis_id")
         .eq("conversation_id", conversation_id)
         .order("created_at", desc=False)
@@ -244,8 +246,7 @@ async def get_conversation_analysis(
 
     # Find messages with analysis_id in this conversation
     msgs_resp = (
-        supabase_admin
-        .table("messages")
+        supabase_admin.table("messages")
         .select("analysis_id")
         .eq("conversation_id", conversation_id)
         .eq("user_id", user_id)
@@ -256,17 +257,15 @@ async def get_conversation_analysis(
     )
 
     if not msgs_resp.data:
-        raise HTTPException(status_code=404, detail="No analysis found in this conversation")
+        raise HTTPException(
+            status_code=404, detail="No analysis found in this conversation"
+        )
 
     analysis_id = msgs_resp.data[0]["analysis_id"]
 
     # Fetch the analysis
     analysis_resp = (
-        supabase_admin
-        .table("analyses")
-        .select("*")
-        .eq("id", analysis_id)
-        .execute()
+        supabase_admin.table("analyses").select("*").eq("id", analysis_id).execute()
     )
 
     if not analysis_resp.data:
@@ -276,13 +275,14 @@ async def get_conversation_analysis(
 
 
 @router.delete("/conversations/{conversation_id}")
-async def delete_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
+async def delete_conversation(
+    conversation_id: str, user: dict = Depends(get_current_user)
+):
     """Delete a conversation and all its messages."""
     user_id = user["sub"]
 
     conv_resp = (
-        supabase_admin
-        .table("conversations")
+        supabase_admin.table("conversations")
         .select("id")
         .eq("id", conversation_id)
         .eq("user_id", user_id)
@@ -291,7 +291,9 @@ async def delete_conversation(conversation_id: str, user: dict = Depends(get_cur
     if not conv_resp.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    supabase_admin.table("messages").delete().eq("conversation_id", conversation_id).execute()
+    supabase_admin.table("messages").delete().eq(
+        "conversation_id", conversation_id
+    ).execute()
     supabase_admin.table("conversations").delete().eq("id", conversation_id).execute()
 
     return {"status": "deleted"}

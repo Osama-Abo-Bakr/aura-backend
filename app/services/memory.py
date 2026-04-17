@@ -13,8 +13,7 @@ async def build_summary_context(user_id: str) -> str:
 
     # Fetch last 3 analyses
     analyses_resp = (
-        supabase_admin
-        .table("analyses")
+        supabase_admin.table("analyses")
         .select("analysis_type, result, created_at")
         .eq("user_id", user_id)
         .eq("status", "completed")
@@ -45,8 +44,7 @@ async def build_summary_context(user_id: str) -> str:
 
     # Fetch last conversation title
     conv_resp = (
-        supabase_admin
-        .table("conversations")
+        supabase_admin.table("conversations")
         .select("title")
         .eq("user_id", user_id)
         .order("created_at", desc=True)

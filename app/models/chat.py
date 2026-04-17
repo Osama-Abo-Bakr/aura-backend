@@ -9,10 +9,18 @@ from pydantic import BaseModel, Field
 
 class ChatMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, description="The user's message text")
-    conversation_id: UUID | None = Field(None, description="Existing conversation ID (creates new if null)")
+    conversation_id: UUID | None = Field(
+        None, description="Existing conversation ID (creates new if null)"
+    )
     language: Literal["ar", "en"] = Field("ar", description="Response language")
-    file_path: str | None = Field(None, description="Path from signed URL upload (obtained via /analysis/upload-url)")
-    file_type: str | None = Field(None, description="MIME type of the uploaded file (required if file_path is provided)")
+    file_path: str | None = Field(
+        None,
+        description="Path from signed URL upload (obtained via /analysis/upload-url)",
+    )
+    file_type: str | None = Field(
+        None,
+        description="MIME type of the uploaded file (required if file_path is provided)",
+    )
 
     def has_file(self) -> bool:
         return self.file_path is not None
@@ -52,6 +60,7 @@ class ConversationResponse(BaseModel):
 # SSE event models for structured streaming
 class SSEEvent(BaseModel):
     """Base model for SSE events."""
+
     type: str
 
 
