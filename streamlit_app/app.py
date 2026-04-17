@@ -113,6 +113,12 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     padding: 20px;
     margin-bottom: 16px;
     border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid var(--aura-rose);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.aura-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 .aura-card-dark {
     background: var(--aura-plum);
@@ -131,24 +137,28 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
+    transition: transform 0.15s ease;
 }
-.badge-success { background: #e6f4ea; color: #1e7e34; }
-.badge-error   { background: #fde8e8; color: #c0392b; }
-.badge-warning { background: #fef5e7; color: #b7791f; }
-.badge-info    { background: #e8f0fe; color: #2c5282; }
+.aura-badge:hover {
+    transform: scale(1.05);
+}
+.badge-success { background: #e6f4ea; color: var(--aura-success); }
+.badge-error   { background: #fde8e8; color: var(--aura-error); }
+.badge-warning { background: #fef5e7; color: var(--aura-warning); }
+.badge-info    { background: #e8f0fe; color: var(--aura-info); }
 .badge-rose    { background: var(--aura-peach); color: var(--aura-rose-dark); }
-.badge-gold    { background: #fef5e7; color: #975a16; }
+.badge-gold    { background: #fef5e7; color: var(--aura-gold); }
 .badge-plum    { background: #ede8f0; color: var(--aura-plum); }
-.badge-open    { background: #e8f0fe; color: #2c5282; }
-.badge-in-progress { background: #fef5e7; color: #b7791f; }
-.badge-resolved { background: #e6f4ea; color: #1e7e34; }
+.badge-open    { background: #e8f0fe; color: var(--aura-info); }
+.badge-in-progress { background: #fef5e7; color: var(--aura-warning); }
+.badge-resolved { background: #e6f4ea; color: var(--aura-success); }
 .badge-closed  { background: #f0f0f0; color: #666; }
 .badge-free    { background: #f0f0f0; color: #666; }
 .badge-premium { background: linear-gradient(135deg,#f6e6b6,#d4a574); color: #5e3a1a; }
-.badge-pending   { background: #fef5e7; color: #b7791f; }
-.badge-processing { background: #e8f0fe; color: #2c5282; }
-.badge-completed { background: #e6f4ea; color: #1e7e34; }
-.badge-failed    { background: #fde8e8; color: #c0392b; }
+.badge-pending   { background: #fef5e7; color: var(--aura-warning); }
+.badge-processing { background: #e8f0fe; color: var(--aura-info); }
+.badge-completed { background: #e6f4ea; color: var(--aura-success); }
+.badge-failed    { background: #fde8e8; color: var(--aura-error); }
 
 /* Chat bubbles */
 .aura-chat-user {
@@ -159,6 +169,7 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     max-width: 75%;
     margin-left: auto;
     margin-bottom: 8px;
+    animation: fadeIn 0.3s ease;
 }
 .aura-chat-assistant {
     background: var(--aura-peach);
@@ -168,6 +179,11 @@ section[data-testid="stSidebar"] .stRadio label:hover {
     max-width: 75%;
     margin-right: auto;
     margin-bottom: 8px;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Metric cards */
@@ -208,6 +224,7 @@ section[data-testid="stSidebar"] .stRadio label:hover {
 .stTabs [data-baseweb="tab"] {
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     padding: 8px 16px;
+    transition: all 0.2s ease !important;
 }
 .stTabs [aria-selected="true"] {
     border-bottom: 2px solid var(--aura-rose) !important;
@@ -221,6 +238,129 @@ section[data-testid="stSidebar"] .stRadio label:hover {
 
 /* Spinner override */
 .stSpinner > div { border-color: var(--aura-rose) transparent transparent transparent !important; }
+
+/* Page header with accent underline */
+.aura-page-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--aura-plum);
+    margin: 0 0 4px 0;
+    padding: 0;
+}
+.aura-page-header::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--aura-rose), var(--aura-gold));
+    border-radius: 2px;
+    margin-bottom: 20px;
+}
+
+/* Section title with left accent bar */
+.aura-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--aura-plum);
+    padding-left: 12px;
+    border-left: 3px solid var(--aura-rose);
+    margin: 20px 0 12px 0;
+}
+
+/* Empty state message */
+.aura-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--aura-plum-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Primary action button */
+.aura-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--aura-rose), var(--aura-rose-dark));
+    color: white !important;
+    padding: 10px 24px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    border: none;
+}
+.aura-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Metric grid layout */
+.aura-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+}
+
+/* Phase card for Cycle Tracker */
+.aura-phase-card {
+    background: linear-gradient(135deg, var(--aura-plum), var(--aura-plum-light));
+    color: var(--aura-cream);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin: 16px 0;
+}
+.aura-phase-card .phase-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.aura-phase-card .phase-desc {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Divider */
+.aura-divider {
+    border: none;
+    border-top: 1px solid var(--aura-peach-dark);
+    margin: 16px 0;
+}
+
+/* Upload zone */
+.aura-upload-zone {
+    border: 2px dashed var(--aura-peach-dark);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: center;
+    color: var(--aura-plum-light);
+    margin: 12px 0;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.aura-upload-zone:hover {
+    border-color: var(--aura-rose);
+    background: rgba(196, 114, 127, 0.05);
+}
+
+/* Streamlit form styling */
+section[data-testid="stForm"] {
+    border: 1px solid var(--aura-peach-dark);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+section[data-testid="stForm"] button[kind="primary"] {
+    background: linear-gradient(135deg, var(--aura-rose), var(--aura-rose-dark)) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+/* Streamlit input focus glow */
+input:focus, textarea:focus, select:focus {
+    box-shadow: 0 0 0 3px rgba(196, 114, 127, 0.2) !important;
+    border-color: var(--aura-rose) !important;
+}
 """
 
 
@@ -349,12 +489,11 @@ def _display_response(resp: httpx.Response) -> None:
     _display_response_rich(resp)
 
 
-def _metric_card(icon: str, value: str, label: str) -> None:
-    st.markdown(
+def _metric_card(icon: str, value: str, label: str) -> str:
+    return (
         f'<div class="aura-metric"><div class="metric-icon">{icon}</div>'
         f'<div class="metric-value">{value}</div>'
-        f'<div class="metric-label">{label}</div></div>',
-        unsafe_allow_html=True,
+        f'<div class="metric-label">{label}</div></div>'
     )
 
 
@@ -434,7 +573,7 @@ def _do_signout() -> None:
 
 
 def _render_auth() -> None:
-    st.header("\U0001f512 Authentication")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f512 Authentication</h1></div>', unsafe_allow_html=True)
 
     tab_reg, tab_login, tab_refresh = st.tabs(["Register", "Login", "Refresh Token"])
 
@@ -547,7 +686,7 @@ def _render_auth() -> None:
 
 
 def _render_profile() -> None:
-    st.header("\U0001f464 Profile & Me")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f464 Profile & Me</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -641,7 +780,7 @@ def _render_profile() -> None:
 
 
 def _render_chat() -> None:
-    st.header("\U0001f4ac Chat")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4ac Chat</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -848,6 +987,7 @@ def _render_chat() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_convos:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         col1, col2 = st.columns([3, 1])
         with col2:
             if st.button("\U0001f504 Refresh", width="stretch"):
@@ -895,6 +1035,7 @@ def _render_chat() -> None:
                                 _display_response_rich(resp)
         else:
             st.info("No conversations yet. Click Refresh to load.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 
@@ -904,7 +1045,7 @@ def _render_chat() -> None:
 
 
 def _render_health_log() -> None:
-    st.header("\U0001f4c8 Health Log")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4c8 Health Log</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -949,13 +1090,16 @@ def _render_health_log() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Recent Logs")
         hl_days = st.number_input("\U0001f4c5 Days", min_value=1, max_value=365, value=30, key="hl_days")
         if st.button("\U0001f4da Load Logs", width="stretch"):
             resp = _api_call("GET", "/health-log", params={"days": hl_days})
             _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_summary:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("\U0001f4ca Health Summary & Charts")
         summary_days = st.slider("\U0001f4c5 Days", min_value=7, max_value=90, value=30, key="summary_days")
         if st.button("\U0001f504 Load Summary", width="stretch"):
@@ -1044,6 +1188,7 @@ def _render_health_log() -> None:
                     st.plotly_chart(fig, width="stretch")
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_date:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
@@ -1067,7 +1212,7 @@ def _render_health_log() -> None:
 
 
 def _render_subscriptions() -> None:
-    st.header("\U0001f4b3 Subscriptions")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f4b3 Subscriptions</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1133,7 +1278,7 @@ STATE_COLORS = {
 
 
 def _render_tickets() -> None:
-    st.header("\U0001f3ab Tickets")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f3ab Tickets</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1169,10 +1314,12 @@ def _render_tickets() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("My Tickets")
         if st.button("\U0001f504 Load Tickets", width="stretch"):
             resp = _api_call("GET", "/tickets")
             _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_detail:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
@@ -1257,7 +1404,7 @@ def _render_tickets() -> None:
 
 
 def _render_wellness() -> None:
-    st.header("\U0001f338 Wellness Plans")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f338 Wellness Plans</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1296,6 +1443,7 @@ def _render_wellness() -> None:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_list:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("My Wellness Plans")
         if st.button("\U0001f504 Load Plans", width="stretch"):
             resp = _api_call("GET", "/wellness/plans")
@@ -1318,6 +1466,7 @@ def _render_wellness() -> None:
                     st.info("No plans yet.")
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_detail:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
@@ -1361,7 +1510,7 @@ CYCLE_SYMPTOMS = [
 
 
 def _render_cycle_tracker() -> None:
-    st.header("\U0001f338 Cycle Tracker")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f338 Cycle Tracker</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1512,7 +1661,7 @@ _ADMIN_EMAILS = [
 
 
 def _render_admin() -> None:
-    st.header("\U0001f511 Admin Dashboard")
+    st.markdown('<div class="aura-page-header"><h1>\U0001f511 Admin Dashboard</h1></div>', unsafe_allow_html=True)
     if not _ensure_auth():
         return
 
@@ -1527,39 +1676,42 @@ def _render_admin() -> None:
     )
 
     with tab_stats:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Platform Overview")
         if st.button("\U0001f4ca Load Stats", width="stretch"):
             resp = _api_call("GET", "/admin/stats")
             if 200 <= resp.status_code < 300:
                 data = resp.json()
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Users", data.get("users", 0))
-                col1.metric("Conversations", data.get("conversations", 0))
-                col2.metric("Messages", data.get("messages", 0))
-                col2.metric("Analyses", data.get("analyses", 0))
-                col3.metric("Cycle Entries", data.get("cycle_entries", 0))
-                col3.metric("Health Logs", data.get("health_logs", 0))
+                col1.markdown(_metric_card("\U0001f465", str(data.get("users", 0)), "Users"), unsafe_allow_html=True)
+                col1.markdown(_metric_card("\U0001f4ac", str(data.get("conversations", 0)), "Conversations"), unsafe_allow_html=True)
+                col2.markdown(_metric_card("\U0001f4e8", str(data.get("messages", 0)), "Messages"), unsafe_allow_html=True)
+                col2.markdown(_metric_card("\U0001f52c", str(data.get("analyses", 0)), "Analyses"), unsafe_allow_html=True)
+                col3.markdown(_metric_card("\U0001f338", str(data.get("cycle_entries", 0)), "Cycle Entries"), unsafe_allow_html=True)
+                col3.markdown(_metric_card("\U0001f4c8", str(data.get("health_logs", 0)), "Health Logs"), unsafe_allow_html=True)
 
                 interactions = data.get("ai_interactions", {})
-                st.markdown("### AI Interactions")
+                st.markdown('<div class="aura-section-title">AI Interactions</div>', unsafe_allow_html=True)
                 ic1, ic2, ic3, ic4 = st.columns(4)
-                ic1.metric("Chat", interactions.get("chat", 0))
-                ic2.metric("Skin", interactions.get("skin", 0))
-                ic3.metric("Report", interactions.get("report", 0))
-                ic4.metric("Total", interactions.get("total", 0))
+                ic1.markdown(_metric_card("\U0001f4ac", str(interactions.get("chat", 0)), "Chat"), unsafe_allow_html=True)
+                ic2.markdown(_metric_card("\U0001f9b4", str(interactions.get("skin", 0)), "Skin"), unsafe_allow_html=True)
+                ic3.markdown(_metric_card("\U0001f4c4", str(interactions.get("report", 0)), "Report"), unsafe_allow_html=True)
+                ic4.markdown(_metric_card("\U0001f4ca", str(interactions.get("total", 0)), "Total"), unsafe_allow_html=True)
 
                 subs = data.get("subscriptions", {})
-                st.markdown("### Subscriptions")
+                st.markdown('<div class="aura-section-title">Subscriptions</div>', unsafe_allow_html=True)
                 sc1, sc2 = st.columns(2)
-                sc1.metric("Free", subs.get("free", 0))
-                sc2.metric("Premium", subs.get("premium", 0))
+                sc1.markdown(_metric_card("\U0001f193", str(subs.get("free", 0)), "Free"), unsafe_allow_html=True)
+                sc2.markdown(_metric_card("\u2b50", str(subs.get("premium", 0)), "Premium"), unsafe_allow_html=True)
 
                 with st.expander("Raw JSON"):
                     st.json(data)
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_users:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Users")
         col_search = st.columns(1)
         search_email = st.text_input("\U0001f50d Search by email", key="admin_user_search")
@@ -1584,8 +1736,10 @@ def _render_admin() -> None:
                     st.info("No users found.")
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_interactions:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("AI Interaction Analytics")
         days = st.number_input("Days to look back", min_value=1, max_value=365, value=30, key="admin_interactions_days")
         if st.button("\U0001f4c8 Load Interactions", width="stretch"):
@@ -1606,8 +1760,10 @@ def _render_admin() -> None:
                     st.json(data)
             else:
                 _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_data:
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("\u26a0 Data Management")
         st.warning("This will permanently delete ALL application data for a user. Their account and subscription will NOT be deleted.")
 
@@ -1624,6 +1780,7 @@ def _render_admin() -> None:
                     st.write(f"Tables cleared: {', '.join(tables_cleared)}")
                 else:
                     _display_response_rich(resp)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
