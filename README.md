@@ -18,6 +18,8 @@ Backend API for **Aura Health** — an AI health companion for women in MENA. Po
   - [Chat](#chat)
   - [Analysis](#analysis)
   - [Health Log](#health-log)
+  - [Cycles](#cycles)
+  - [Admin](#admin)
   - [Subscriptions](#subscriptions)
   - [Tickets](#tickets)
   - [Wellness](#wellness)
@@ -38,11 +40,13 @@ Backend API for **Aura Health** — an AI health companion for women in MENA. Po
 
 Aura is a bilingual (Arabic/English) health companion that provides:
 
-- **Conversational AI chat** — Gemini-powered health guidance with file attachments (skin images, medical reports) analyzed inline via LangGraph
-- **Skin analysis** — Upload a skin photo in chat, get AI-powered findings with severity and recommendations
-- **Medical report analysis** — Upload a PDF report in chat, get biomarker explanations and next steps
+- **Conversational AI chat** — Gemini-powered health guidance with file attachments (skin images, medical reports) analyzed inline via LangGraph, with seamless follow-up conversations about analysis results
+- **Skin analysis** — Upload a skin photo in chat, get AI-powered findings with severity and recommendations, then ask follow-up questions in the same conversation
+- **Medical report analysis** — Upload a PDF report in chat, get biomarker explanations and next steps, then ask follow-up questions about specific findings
+- **Menstrual cycle tracking** — Log periods, predict ovulation and next period, AI-aware cycle context in chat responses
 - **Health logging** — Daily mood, energy, sleep, hydration, exercise, symptom tracking
 - **Wellness plans** — AI-generated personalized 7-day wellness plans (premium)
+- **Admin dashboard** — Platform analytics, user management, interaction stats, data cleanup (admin-only)
 - **Support tickets** — In-app support with status tracking
 - **Subscriptions** — Stripe-powered free/premium tiers
 
@@ -131,6 +135,7 @@ Copy `.env.example` to `.env` and fill in the values:
 | `STRIPE_PRICE_ID_PREMIUM` | No | `""` | Stripe price ID for premium plan |
 | `REDIS_URL` | No | `redis://localhost:6379` | Redis URL for rate limiting + Celery |
 | `SENTRY_DSN` | No | `""` | Sentry DSN (empty = disabled) |
+| `ADMIN_EMAILS` | No | `""` | Comma-separated admin emails (bypass quotas + access admin endpoints) |
 
 ---
 
@@ -143,8 +148,10 @@ aura-backend/
 │   ├── api/v1/
 │   │   ├── __init__.py             # Router aggregation (/api/v1 prefix)
 │   │   ├── auth.py                 # Auth endpoints
+│   │   ├── admin.py                # Admin analytics, user management, data cleanup
 │   │   ├── analysis.py             # Upload URL generation + history
 │   │   ├── chat.py                 # Unified chat endpoint (SSE + file attachments)
+│   │   ├── cycles.py               # Menstrual cycle CRUD + prediction
 │   │   ├── health_log.py           # Health log CRUD + summary
 │   │   ├── subscriptions.py        # Stripe checkout + webhooks
 │   │   ├── tickets.py              # Support tickets + state machine
@@ -166,13 +173,14 @@ aura-backend/
 │   ├── models/
 │   │   ├── analysis.py             # Upload URL + history models
 │   │   ├── chat.py                 # Chat request, SSE event models
+│   │   ├── cycle.py                # Menstrual cycle models
 │   │   ├── ticket.py               # Ticket CRUD + status models
 │   │   ├── user.py                 # Profile, subscription, auth models
 │   │   └── wellness.py             # Health log + wellness plan models
 │   ├── services/
 │   │   ├── auth.py                 # Supabase Auth REST wrapper (httpx + retry)
 │   │   ├── gemini.py               # Gemini AI: chat, skin vision, report vision, wellness
-│   │   ├── memory.py               # Ambient context builder (analyses + conversation titles)
+│   │   ├── memory.py               # Ambient context builder (analyses, conversation titles, cycle context, conversation analysis)
 │   │   ├── storage.py              # Supabase Storage signed URLs + file download
 │   │   └── stripe_svc.py           # Stripe checkout + webhook handling
 │   └── tasks/
@@ -188,13 +196,15 @@ aura-backend/
 │   ├── conftest.py                 # Mocked Supabase client, fixtures
 │   ├── test_auth.py                # AuthService unit tests
 │   ├── test_auth_endpoints.py      # Auth endpoint integration tests
+│   ├── test_admin.py               # Admin endpoint tests (stats, users, interactions, data delete)
+│   ├── test_cycles.py              # Menstrual cycle CRUD + prediction tests
 │   ├── test_tickets.py             # Ticket CRUD + state machine tests
 │   ├── test_health_log.py          # Health log summary unit tests
 │   ├── test_middleware.py          # Middleware unit tests
 │   ├── test_security.py            # JWT verification tests
 │   ├── test_analysis.py            # Analysis endpoint tests
-│   ├── test_graph.py               # LangGraph router + response formatter tests
-│   ├── test_memory.py              # Memory service tests
+│   ├── test_graph.py               # LangGraph router, response formatter, memory injection tests
+│   ├── test_memory.py              # Memory service tests (summary context, conversation analysis)
 │   ├── test_integration_chat.py    # Chat request models, SSE events, routing logic
 │   └── test_regression_bugs.py    # Regression tests for past bugs
 ├── streamlit_app/
@@ -299,6 +309,8 @@ Chat messages are processed through a **LangGraph state machine** that routes ba
 - **Image attachment** → skin analyzer (Gemini Vision)
 - **PDF attachment** → report analyzer (Gemini Vision)
 
+**Conversational analysis follow-up:** After a skin or report analysis, users can ask follow-up questions in the same conversation. The `memory_injection` node fetches the latest analysis from the conversation and injects it into the AI's context, so the response naturally references specific findings.
+
 Responses are streamed as Server-Sent Events (SSE) with structured event types:
 - `content` — text chunks from the AI response
 - `analysis_meta` — analysis type and ID when a file was analyzed
@@ -326,6 +338,29 @@ Analysis is now performed inline within the chat endpoint via LangGraph. The sta
 | `GET` | `/health-log/summary` | Yes | Aggregated chart data: mood/energy/sleep trends, symptom frequency |
 | `GET` | `/health-log/{log_date}` | Yes | Get a specific date's entry |
 | `DELETE` | `/health-log/{log_date}` | Yes | Delete a specific date's entry |
+
+### Cycles
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/cycles` | Yes | Create a menstrual cycle entry |
+| `GET` | `/cycles` | Yes | List user's cycle entries (last 12) |
+| `GET` | `/cycles/prediction` | Yes | Predict next period and current cycle phase |
+| `PUT` | `/cycles/{cycle_id}` | Yes | Update a cycle entry |
+| `DELETE` | `/cycles/{cycle_id}` | Yes | Delete a cycle entry |
+
+Cycle data is also injected into chat context via the `memory_injection` node, so the AI can give cycle-aware health advice.
+
+### Admin
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/admin/stats` | Admin | Platform-wide statistics (users, conversations, analyses, etc.) |
+| `GET` | `/admin/users` | Admin | Paginated user list with search and interaction counts |
+| `GET` | `/admin/interactions` | Admin | Daily AI interaction analytics for last N days |
+| `DELETE` | `/admin/data/{user_id}` | Admin | Delete all app data for a user (messages, cycles, logs, analyses, plans) |
+
+Admin endpoints require the user's email to be listed in the `ADMIN_EMAILS` environment variable. Admin users also bypass quota checks.
 
 ### Subscriptions
 
@@ -453,6 +488,7 @@ Run these SQL files in order on your Supabase project (via the SQL Editor or `su
 | 003 | `storage_policies.sql` | RLS policies for Supabase Storage `analyses` bucket |
 | 004 | `tickets.sql` | Tickets table + RLS + auto-update trigger |
 | 005 | `add_message_file_columns.sql` | Adds `file_path`, `file_type`, `analysis_id` columns to messages table |
+| 006 | `create_menstrual_cycles.sql` | Menstrual cycle tracking table + RLS |
 
 All tables use Row Level Security (RLS) — users can only access their own data.
 
@@ -480,7 +516,7 @@ The test suite uses:
 - **Mocked Gemini** — `google.generativeai.configure` is patched to prevent real API calls
 - **Dependency overrides** — `get_current_user` is overridden in endpoint tests to inject a fake user
 - **Service mocking** — `AuthService` and `supabase_admin` are mocked per-test with `unittest.mock.patch`
-- **92 tests** covering auth, tickets, health log, middleware, security, analysis, LangGraph routing, memory, chat integration, and regression bugs
+- **119 tests** covering auth, tickets, health log, middleware, security, analysis, LangGraph routing, memory (including conversation analysis follow-up), chat integration, admin, cycles, and regression bugs
 
 ---
 
@@ -529,7 +565,7 @@ streamlit run app.py
 docker compose up streamlit
 ```
 
-Provides a UI for all 8 endpoint groups: Auth, Profile, Chat, Analysis, Health Log, Subscriptions, Tickets, Wellness.
+Provides a UI for all endpoint groups: Auth, Profile, Chat, Analysis, Health Log, Cycles, Subscriptions, Tickets, Wellness, and Admin.
 
 ---
 
@@ -618,7 +654,8 @@ Rate limit errors (429) include upgrade information:
 | **ES256 + HS256 fallback** | JWT verification tries JWKS/ES256 first, falls back to HS256 — supports both Supabase key types |
 | **LangGraph for conversation routing** | A deterministic state machine routes messages to chat, skin analysis, or report analysis nodes based on file type — keeps logic explicit and testable |
 | **Inline analysis via LangGraph** | Skin and report analysis run synchronously in the request via LangGraph nodes (no Celery) — simpler architecture, immediate SSE response, easier error handling |
-| **Ambient memory injection** | Before responding, the graph fetches the user's last 3 analyses and most recent conversation title as context — gives the AI awareness without explicit history management |
+| **Ambient memory injection** | Before responding, the graph fetches the user's last 3 analyses, most recent conversation title, menstrual cycle phase, and the current conversation's analysis — gives the AI awareness without explicit history management |
+| **Conversational analysis follow-up** | The `memory_injection` node fetches the latest analysis from the current conversation, enabling follow-up questions about skin and report results. Uses the `ANALYSIS_FOLLOWUP_TEMPLATE` to inject analysis context into the system prompt |
 | **SSE streaming with typed events** | Structured event types (`content`, `analysis_meta`, `quota_error`, `analysis_error`, `[DONE]`) let the frontend render analysis cards and errors distinctly from text |
 | **slowapi rate limiting** | Redis-backed rate limiting prevents abuse while keeping the architecture stateless |
 | **Quota system** | Simple monthly counter in `ai_interactions` — scales well and is easy to audit |
