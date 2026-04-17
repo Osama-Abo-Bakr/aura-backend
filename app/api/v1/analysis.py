@@ -9,7 +9,7 @@ from app.db.supabase import supabase_admin
 from app.models.analysis import UploadURLRequest
 from app.services.storage import generate_upload_url
 
-router = APIRouter(prefix="/analysis", tags=["Analysis"])
+router = APIRouter(prefix="/analysis")
 
 
 @router.post("/upload-url")

@@ -23,7 +23,7 @@ from app.models.chat import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/chat", tags=["Chat"])
+router = APIRouter(prefix="/chat")
 
 
 def _determine_quota_type(request: ChatMessageRequest) -> str:
