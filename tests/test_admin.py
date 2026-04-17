@@ -163,7 +163,7 @@ def test_admin_stats_returns_counts(admin_client):
         subs_chain.eq.return_value = subs_chain
 
         # General count chain for simple table counts
-        count_chain = _mock_supabase_chain([], count=0)[0]
+        _mock_supabase_chain([], count=0)[0]
 
         # Track which table is being queried
         table_calls = []
@@ -218,8 +218,6 @@ def test_admin_users_returns_paginated_list(admin_client):
 
         # interaction count query
         interaction_chain = _mock_supabase_chain([], count=5)[0]
-
-        call_count = [0]
 
         def table_side_effect(table_name):
             if table_name == "profiles":

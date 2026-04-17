@@ -1,8 +1,7 @@
 """Tests for LangGraph node functions."""
 
 import pytest
-from unittest.mock import patch, MagicMock
-from app.graph.state import ConversationState, FileAttachment
+from unittest.mock import patch
 from app.graph.nodes import router, response_formatter, memory_injection
 
 

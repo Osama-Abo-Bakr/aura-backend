@@ -11,7 +11,6 @@ These tests verify that previously reported bugs stay fixed:
 from __future__ import annotations
 
 import unittest
-from datetime import date, datetime
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient

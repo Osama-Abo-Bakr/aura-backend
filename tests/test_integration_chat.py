@@ -1,6 +1,5 @@
 """Integration tests for the unified chat endpoint."""
 
-import pytest
 from app.models.chat import ChatMessageRequest
 from app.graph.nodes import router
 
