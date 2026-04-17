@@ -69,23 +69,38 @@ class TestRouterLogic:
         assert router(state) == "chat"
 
     def test_routes_jpeg_to_skin(self):
-        state = {"current_file": {"file_path": "x.jpg", "file_type": "image/jpeg"}, "current_message": "What is this?"}
+        state = {
+            "current_file": {"file_path": "x.jpg", "file_type": "image/jpeg"},
+            "current_message": "What is this?",
+        }
         assert router(state) == "skin"
 
     def test_routes_png_to_skin(self):
-        state = {"current_file": {"file_path": "x.png", "file_type": "image/png"}, "current_message": "Check this"}
+        state = {
+            "current_file": {"file_path": "x.png", "file_type": "image/png"},
+            "current_message": "Check this",
+        }
         assert router(state) == "skin"
 
     def test_routes_webp_to_skin(self):
-        state = {"current_file": {"file_path": "x.webp", "file_type": "image/webp"}, "current_message": "Look"}
+        state = {
+            "current_file": {"file_path": "x.webp", "file_type": "image/webp"},
+            "current_message": "Look",
+        }
         assert router(state) == "skin"
 
     def test_routes_pdf_to_report(self):
-        state = {"current_file": {"file_path": "x.pdf", "file_type": "application/pdf"}, "current_message": "Explain this"}
+        state = {
+            "current_file": {"file_path": "x.pdf", "file_type": "application/pdf"},
+            "current_message": "Explain this",
+        }
         assert router(state) == "report"
 
     def test_routes_unknown_file_to_chat(self):
-        state = {"current_file": {"file_path": "x.doc", "file_type": "application/msword"}, "current_message": "What's this?"}
+        state = {
+            "current_file": {"file_path": "x.doc", "file_type": "application/msword"},
+            "current_message": "What's this?",
+        }
         assert router(state) == "chat"
 
     def test_routes_text_with_image_to_skin(self):
@@ -101,6 +116,7 @@ class TestSSEEventModels:
 
     def test_content_event(self):
         from app.models.chat import ContentEvent
+
         event = ContentEvent(text="Hello there")
         assert event.type == "content"
         assert event.text == "Hello there"
@@ -110,18 +126,21 @@ class TestSSEEventModels:
 
     def test_analysis_meta_event(self):
         from app.models.chat import AnalysisMetaEvent
+
         event = AnalysisMetaEvent(analysis_type="skin", analysis_id="abc-123")
         assert event.type == "analysis_meta"
         assert event.analysis_type == "skin"
 
     def test_quota_error_event(self):
         from app.models.chat import QuotaErrorEvent
+
         event = QuotaErrorEvent(message="Quota exceeded", interaction_type="skin")
         assert event.type == "quota_error"
         assert event.interaction_type == "skin"
 
     def test_analysis_error_event(self):
         from app.models.chat import AnalysisErrorEvent
+
         event = AnalysisErrorEvent(message="Analysis failed")
         assert event.type == "analysis_error"
         assert event.message == "Analysis failed"

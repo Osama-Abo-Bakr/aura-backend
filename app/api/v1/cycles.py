@@ -46,11 +46,7 @@ async def create_cycle_entry(
         data["end_date"] = data["end_date"].isoformat()
     data["user_id"] = user_id
 
-    resp = (
-        supabase_admin.table("menstrual_cycles")
-        .insert(data)
-        .execute()
-    )
+    resp = supabase_admin.table("menstrual_cycles").insert(data).execute()
 
     if not resp or not resp.data:
         raise HTTPException(
@@ -128,17 +124,15 @@ async def get_cycle_prediction(
         )
 
     # Calculate average cycle length from available data
-    avg_cycle_length = round(
-        sum(c["cycle_length"] for c in cycles) / len(cycles)
-    )
-    avg_period_length = round(
-        sum(c["period_length"] for c in cycles) / len(cycles)
-    )
+    avg_cycle_length = round(sum(c["cycle_length"] for c in cycles) / len(cycles))
+    avg_period_length = round(sum(c["period_length"] for c in cycles) / len(cycles))
 
     # Most recent cycle start date
-    last_start = date.fromisoformat(cycles[0]["start_date"]) if isinstance(
-        cycles[0]["start_date"], str
-    ) else cycles[0]["start_date"]
+    last_start = (
+        date.fromisoformat(cycles[0]["start_date"])
+        if isinstance(cycles[0]["start_date"], str)
+        else cycles[0]["start_date"]
+    )
 
     today = date.today()
     days_since_last_start = (today - last_start).days
@@ -206,15 +200,22 @@ async def update_cycle_entry(
 
     # Build update payload — only include fields that were provided
     allowed_fields = {
-        "start_date", "end_date", "cycle_length",
-        "period_length", "symptoms", "mood", "notes",
+        "start_date",
+        "end_date",
+        "cycle_length",
+        "period_length",
+        "symptoms",
+        "mood",
+        "notes",
     }
     update_data = {}
     for key, value in body.items():
         if key in allowed_fields:
             # Convert date strings to ISO format
             if key in ("start_date", "end_date") and value is not None:
-                update_data[key] = value.isoformat() if hasattr(value, "isoformat") else value
+                update_data[key] = (
+                    value.isoformat() if hasattr(value, "isoformat") else value
+                )
             else:
                 update_data[key] = value
 

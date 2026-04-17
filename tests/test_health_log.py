@@ -24,7 +24,11 @@ def _make_rows(n: int = 7) -> list[dict]:
                 "sleep_hours": 5.5 + (i % 4) * 0.5,
                 "water_ml": 1500 + i * 100,
                 "exercise_minutes": 20 + i * 5,
-                "symptoms": ["Headache"] if i % 3 == 0 else ["Fatigue"] if i % 3 == 1 else [],
+                "symptoms": ["Headache"]
+                if i % 3 == 0
+                else ["Fatigue"]
+                if i % 3 == 1
+                else [],
             }
         )
     return rows
@@ -35,13 +39,21 @@ def _compute_summary(rows: list[dict], days: int = 30) -> dict:
     Mirror of the aggregation logic in api/v1/health_log.py::health_summary.
     Kept here as a pure-Python function so we can unit-test it without FastAPI.
     """
-    mood_trend = [{"date": r["log_date"], "value": r["mood"]} for r in rows if r.get("mood")]
-    energy_trend = [{"date": r["log_date"], "value": r["energy"]} for r in rows if r.get("energy")]
-    sleep_trend = [{"date": r["log_date"], "value": r["sleep_hours"]} for r in rows if r.get("sleep_hours") is not None]
+    mood_trend = [
+        {"date": r["log_date"], "value": r["mood"]} for r in rows if r.get("mood")
+    ]
+    energy_trend = [
+        {"date": r["log_date"], "value": r["energy"]} for r in rows if r.get("energy")
+    ]
+    sleep_trend = [
+        {"date": r["log_date"], "value": r["sleep_hours"]}
+        for r in rows
+        if r.get("sleep_hours") is not None
+    ]
 
     symptom_counts: dict[str, int] = {}
     for r in rows:
-        for s in (r.get("symptoms") or []):
+        for s in r.get("symptoms") or []:
             symptom_counts[s] = symptom_counts.get(s, 0) + 1
     symptom_frequency = sorted(
         [{"symptom": k, "count": v} for k, v in symptom_counts.items()],

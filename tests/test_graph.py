@@ -35,7 +35,10 @@ class TestRouter:
     def test_routes_image_to_skin(self):
         state = make_state(
             current_message="What is this?",
-            current_file={"file_path": "user-123/abc_skin.jpg", "file_type": "image/jpeg"},
+            current_file={
+                "file_path": "user-123/abc_skin.jpg",
+                "file_type": "image/jpeg",
+            },
         )
         result = router(state)
         assert result == "skin"
@@ -43,7 +46,10 @@ class TestRouter:
     def test_routes_pdf_to_report(self):
         state = make_state(
             current_message="Explain this report",
-            current_file={"file_path": "user-123/abc_report.pdf", "file_type": "application/pdf"},
+            current_file={
+                "file_path": "user-123/abc_report.pdf",
+                "file_type": "application/pdf",
+            },
         )
         result = router(state)
         assert result == "report"
@@ -51,7 +57,10 @@ class TestRouter:
     def test_routes_image_with_text_to_skin(self):
         state = make_state(
             current_message="I've had this rash for 3 days",
-            current_file={"file_path": "user-123/abc_rash.png", "file_type": "image/png"},
+            current_file={
+                "file_path": "user-123/abc_rash.png",
+                "file_type": "image/png",
+            },
         )
         result = router(state)
         assert result == "skin"
@@ -67,7 +76,10 @@ class TestRouter:
     def test_routes_unknown_file_to_chat(self):
         state = make_state(
             current_message="What's this?",
-            current_file={"file_path": "user-123/doc.doc", "file_type": "application/msword"},
+            current_file={
+                "file_path": "user-123/doc.doc",
+                "file_type": "application/msword",
+            },
         )
         result = router(state)
         assert result == "chat"
@@ -119,9 +131,14 @@ class TestMemoryInjection:
         async def mock_conv_analysis(conv_id, uid):
             return (mock_analysis, "skin")
 
-        with patch("app.graph.nodes.build_summary_context", side_effect=mock_summary), \
-             patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle), \
-             patch("app.graph.nodes.get_conversation_analysis", side_effect=mock_conv_analysis):
+        with (
+            patch("app.graph.nodes.build_summary_context", side_effect=mock_summary),
+            patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle),
+            patch(
+                "app.graph.nodes.get_conversation_analysis",
+                side_effect=mock_conv_analysis,
+            ),
+        ):
             result = await memory_injection(state)
 
         assert result["last_analysis"] == mock_analysis
@@ -159,9 +176,14 @@ class TestMemoryInjection:
         async def mock_conv_analysis(conv_id, uid):
             return ({"concern": "different"}, "report")
 
-        with patch("app.graph.nodes.build_summary_context", side_effect=mock_summary), \
-             patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle), \
-             patch("app.graph.nodes.get_conversation_analysis", side_effect=mock_conv_analysis):
+        with (
+            patch("app.graph.nodes.build_summary_context", side_effect=mock_summary),
+            patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle),
+            patch(
+                "app.graph.nodes.get_conversation_analysis",
+                side_effect=mock_conv_analysis,
+            ),
+        ):
             result = await memory_injection(state)
 
         # Should NOT contain last_analysis because state already has one
@@ -196,9 +218,14 @@ class TestMemoryInjection:
         async def mock_conv_analysis(conv_id, uid):
             return (None, None)
 
-        with patch("app.graph.nodes.build_summary_context", side_effect=mock_summary), \
-             patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle), \
-             patch("app.graph.nodes.get_conversation_analysis", side_effect=mock_conv_analysis):
+        with (
+            patch("app.graph.nodes.build_summary_context", side_effect=mock_summary),
+            patch("app.graph.nodes.build_cycle_context", side_effect=mock_cycle),
+            patch(
+                "app.graph.nodes.get_conversation_analysis",
+                side_effect=mock_conv_analysis,
+            ),
+        ):
             result = await memory_injection(state)
 
         assert "last_analysis" not in result

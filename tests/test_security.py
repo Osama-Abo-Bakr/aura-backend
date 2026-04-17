@@ -44,6 +44,7 @@ def patch_settings(monkeypatch):
     monkeypatch.setattr(cfg_module.settings, "SUPABASE_JWT_SECRET", TEST_SECRET)
     # Re-import to pick up patched settings
     import importlib
+
     importlib.reload(sec_module)
     yield
 

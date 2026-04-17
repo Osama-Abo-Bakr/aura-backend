@@ -1,4 +1,5 @@
 """Tests for the auth service layer."""
+
 from __future__ import annotations
 
 import unittest
@@ -37,7 +38,10 @@ class TestAuthService(unittest.TestCase):
         result = svc.signup("alice@example.com", "secret123", "Alice Smith")
 
         call_args = MockClient.return_value.post.call_args
-        self.assertTrue(call_args[0][0].endswith("/auth/v1/signup"), f"Expected URL ending with /auth/v1/signup, got {call_args[0][0]}")
+        self.assertTrue(
+            call_args[0][0].endswith("/auth/v1/signup"),
+            f"Expected URL ending with /auth/v1/signup, got {call_args[0][0]}",
+        )
         payload = call_args[1]["json"]
         self.assertEqual(payload["email"], "alice@example.com")
         self.assertEqual(payload["password"], "secret123")
@@ -99,11 +103,14 @@ class TestAuthService(unittest.TestCase):
     @patch("httpx.Client")
     def test_refresh_token_success(self, MockClient: MagicMock) -> None:
         """refresh_token() exchanges a refresh token for new tokens."""
-        mock_resp = self._mock_client(200, {
-            "access_token": "new_access",
-            "refresh_token": "new_refresh",
-            "expires_in": 3600,
-        })
+        mock_resp = self._mock_client(
+            200,
+            {
+                "access_token": "new_access",
+                "refresh_token": "new_refresh",
+                "expires_in": 3600,
+            },
+        )
         MockClient.return_value.post.return_value = mock_resp
 
         svc = AuthService()
@@ -147,6 +154,7 @@ class TestAuthService(unittest.TestCase):
     def test_post_retries_on_transport_error(self, MockClient: MagicMock) -> None:
         """_post() retries on httpx.TransportError."""
         from httpx import TransportError
+
         MockClient.return_value.post.side_effect = TransportError("Connection reset")
         svc = AuthService()
         try:

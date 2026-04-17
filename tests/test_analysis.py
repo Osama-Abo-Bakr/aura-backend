@@ -42,7 +42,11 @@ def _make_token(sub: str | None = None, expired: bool = False) -> str:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-TEST_USER = {"sub": "00000000-0000-0000-0000-000000000001", "email": "test@example.com", "role": "authenticated"}
+TEST_USER = {
+    "sub": "00000000-0000-0000-0000-000000000001",
+    "email": "test@example.com",
+    "role": "authenticated",
+}
 
 
 @pytest.fixture
@@ -94,10 +98,17 @@ def test_upload_url_requires_auth():
     with TestClient(app) as unauth_client:
         response = unauth_client.post(
             "/api/v1/analysis/upload-url",
-            json={"file_name": "photo.jpg", "content_type": "image/jpeg", "analysis_type": "skin"},
+            json={
+                "file_name": "photo.jpg",
+                "content_type": "image/jpeg",
+                "analysis_type": "skin",
+            },
         )
     # Should be 403 Forbidden (auth dependency raises 403 for missing auth)
-    assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+    assert response.status_code in (
+        status.HTTP_403_FORBIDDEN,
+        status.HTTP_401_UNAUTHORIZED,
+    )
 
 
 # ---------------------------------------------------------------------------

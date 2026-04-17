@@ -21,7 +21,11 @@ from app.services.gemini import (
     explain_medical_report,
     stream_chat_response,
 )
-from app.services.memory import build_summary_context, build_cycle_context, get_conversation_analysis
+from app.services.memory import (
+    build_summary_context,
+    build_cycle_context,
+    get_conversation_analysis,
+)
 from app.services.storage import download_file
 
 logger = logging.getLogger(__name__)
@@ -43,7 +47,9 @@ async def memory_injection(state: ConversationState) -> dict:
 
     # Inject analysis from current conversation (enables follow-up questions)
     if not state.get("last_analysis"):
-        analysis, analysis_type = await get_conversation_analysis(conversation_id, user_id)
+        analysis, analysis_type = await get_conversation_analysis(
+            conversation_id, user_id
+        )
         if analysis:
             result["last_analysis"] = analysis
             result["last_analysis_type"] = analysis_type

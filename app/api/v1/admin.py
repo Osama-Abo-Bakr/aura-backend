@@ -37,11 +37,7 @@ async def admin_stats(
 
     # Helper to count rows from a table
     def _count(table: str) -> int:
-        resp = (
-            supabase_admin.table(table)
-            .select("id", count="exact")
-            .execute()
-        )
+        resp = supabase_admin.table(table).select("id", count="exact").execute()
         return resp.count if resp.count is not None else len(resp.data or [])
 
     # Individual table counts
@@ -54,9 +50,7 @@ async def admin_stats(
 
     # AI interactions — grouped by interaction_type
     interactions_resp = (
-        supabase_admin.table("ai_interactions")
-        .select("interaction_type")
-        .execute()
+        supabase_admin.table("ai_interactions").select("interaction_type").execute()
     )
     interaction_rows = interactions_resp.data or []
     interactions_by_type: dict[str, int] = {}
@@ -118,9 +112,7 @@ async def admin_list_users(
         query = query.ilike("email", f"%{search}%")
 
     resp = (
-        query.order("created_at", desc=True)
-        .range(offset, offset + limit - 1)
-        .execute()
+        query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
     )
 
     users = resp.data or []

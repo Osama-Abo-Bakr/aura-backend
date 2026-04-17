@@ -56,7 +56,9 @@ async def check_quota(
     Raises HTTPException 429 when the limit is reached.
     """
     # Skip quota check for admin users
-    admin_emails = [e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()]
+    admin_emails = [
+        e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()
+    ]
     if current_user.get("email", "").lower() in admin_emails:
         return
 
@@ -152,7 +154,9 @@ async def require_admin(
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Dependency that raises 403 if the user is not an admin."""
-    admin_emails = [e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()]
+    admin_emails = [
+        e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()
+    ]
     if current_user.get("email", "").lower() not in admin_emails:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

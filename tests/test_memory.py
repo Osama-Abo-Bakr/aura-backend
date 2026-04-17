@@ -22,9 +22,15 @@ async def test_build_summary_context_with_skin_analysis(mock_supabase):
     mock_query.eq.return_value = mock_query
     mock_query.order.return_value = mock_query
     mock_query.limit.return_value = mock_query
-    mock_query.execute.return_value = MagicMock(data=[
-        {"analysis_type": "skin", "result": {"concern": "mild acne"}, "created_at": "2026-04-15"},
-    ])
+    mock_query.execute.return_value = MagicMock(
+        data=[
+            {
+                "analysis_type": "skin",
+                "result": {"concern": "mild acne"},
+                "created_at": "2026-04-15",
+            },
+        ]
+    )
     mock_supabase.table.return_value = mock_query
 
     result = await build_summary_context(user_id="user-123")
@@ -57,19 +63,19 @@ async def test_get_conversation_analysis_with_analysis(mock_supabase):
     msg_query.is_.return_value = msg_query
     msg_query.order.return_value = msg_query
     msg_query.limit.return_value = msg_query
-    msg_query.execute.return_value = MagicMock(
-        data=[{"analysis_id": "analysis-789"}]
-    )
+    msg_query.execute.return_value = MagicMock(data=[{"analysis_id": "analysis-789"}])
 
     # Mock analyses query: fetch the analysis record
     analysis_query = MagicMock()
     analysis_query.select.return_value = analysis_query
     analysis_query.eq.return_value = analysis_query
     analysis_query.execute.return_value = MagicMock(
-        data=[{
-            "analysis_type": "skin",
-            "result": {"concern": "mild acne", "severity": "mild"},
-        }]
+        data=[
+            {
+                "analysis_type": "skin",
+                "result": {"concern": "mild acne", "severity": "mild"},
+            }
+        ]
     )
 
     # Route table calls: first call = messages, second call = analyses
@@ -78,7 +84,9 @@ async def test_get_conversation_analysis_with_analysis(mock_supabase):
         analysis_query,
     ]
 
-    result, analysis_type = await get_conversation_analysis("conv-456", user_id="user-123")
+    result, analysis_type = await get_conversation_analysis(
+        "conv-456", user_id="user-123"
+    )
     assert result == {"concern": "mild acne", "severity": "mild"}
     assert analysis_type == "skin"
 
@@ -96,7 +104,9 @@ async def test_get_conversation_analysis_no_analysis(mock_supabase):
 
     mock_supabase.table.return_value = msg_query
 
-    result, analysis_type = await get_conversation_analysis("conv-no-analysis", user_id="user-123")
+    result, analysis_type = await get_conversation_analysis(
+        "conv-no-analysis", user_id="user-123"
+    )
     assert result is None
     assert analysis_type is None
 
@@ -110,22 +120,27 @@ async def test_get_conversation_analysis_with_json_string_result(mock_supabase):
     msg_query.is_.return_value = msg_query
     msg_query.order.return_value = msg_query
     msg_query.limit.return_value = msg_query
-    msg_query.execute.return_value = MagicMock(
-        data=[{"analysis_id": "analysis-999"}]
-    )
+    msg_query.execute.return_value = MagicMock(data=[{"analysis_id": "analysis-999"}])
 
     analysis_query = MagicMock()
     analysis_query.select.return_value = analysis_query
     analysis_query.eq.return_value = analysis_query
     analysis_query.execute.return_value = MagicMock(
-        data=[{
-            "analysis_type": "report",
-            "result": '{"summary": "Blood test results", "abnormal_flags": ["cholesterol"]}',
-        }]
+        data=[
+            {
+                "analysis_type": "report",
+                "result": '{"summary": "Blood test results", "abnormal_flags": ["cholesterol"]}',
+            }
+        ]
     )
 
     mock_supabase.table.side_effect = [msg_query, analysis_query]
 
-    result, analysis_type = await get_conversation_analysis("conv-789", user_id="user-456")
-    assert result == {"summary": "Blood test results", "abnormal_flags": ["cholesterol"]}
+    result, analysis_type = await get_conversation_analysis(
+        "conv-789", user_id="user-456"
+    )
+    assert result == {
+        "summary": "Blood test results",
+        "abnormal_flags": ["cholesterol"],
+    }
     assert analysis_type == "report"

@@ -42,7 +42,11 @@ def _make_token(sub: str | None = None, expired: bool = False) -> str:
 # Fixtures
 # ---------------------------------------------------------------------------
 
-TEST_USER = {"sub": "00000000-0000-0000-0000-000000000001", "email": "test@example.com", "role": "authenticated"}
+TEST_USER = {
+    "sub": "00000000-0000-0000-0000-000000000001",
+    "email": "test@example.com",
+    "role": "authenticated",
+}
 
 
 @pytest.fixture
@@ -64,6 +68,7 @@ def auth_headers():
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_supabase_chain(return_data):
     """Build a mock Supabase query chain that returns `return_data`."""
@@ -245,7 +250,10 @@ def test_update_cycle_entry(client, auth_headers):
         mock_chain_select.eq.return_value = mock_chain_select
         mock_chain_select.maybe_single.return_value = mock_chain_select
         mock_chain_select.execute.return_value = MagicMock(
-            data={"id": "aaaaaaaa-0000-0000-0000-000000000001", "user_id": TEST_USER["sub"]}
+            data={
+                "id": "aaaaaaaa-0000-0000-0000-000000000001",
+                "user_id": TEST_USER["sub"],
+            }
         )
 
         # Reset for the update call
@@ -296,7 +304,10 @@ def test_delete_cycle_entry(client, auth_headers):
         mock_chain.eq.return_value = mock_chain
         mock_chain.maybe_single.return_value = mock_chain
         mock_chain.execute.return_value = MagicMock(
-            data={"id": "aaaaaaaa-0000-0000-0000-000000000001", "user_id": TEST_USER["sub"]}
+            data={
+                "id": "aaaaaaaa-0000-0000-0000-000000000001",
+                "user_id": TEST_USER["sub"],
+            }
         )
 
         response = client.delete(
@@ -400,23 +411,38 @@ def test_cycles_endpoints_require_auth():
     with TestClient(app) as unauth_client:
         # POST
         r = unauth_client.post("/api/v1/cycles", json={"start_date": "2026-04-01"})
-        assert r.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+        assert r.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
         # GET list
         r = unauth_client.get("/api/v1/cycles")
-        assert r.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+        assert r.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
         # GET prediction
         r = unauth_client.get("/api/v1/cycles/prediction")
-        assert r.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+        assert r.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
         # PUT
         r = unauth_client.put("/api/v1/cycles/some-id", json={"mood": 5})
-        assert r.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+        assert r.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
         # DELETE
         r = unauth_client.delete("/api/v1/cycles/some-id")
-        assert r.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+        assert r.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
 
 # ---------------------------------------------------------------------------
