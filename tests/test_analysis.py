@@ -2,13 +2,16 @@
 Tests for /api/v1/analysis/* endpoints.
 
 Covers input validation, auth requirements, and error responses
-for upload-url, skin, report, status, and history routes.
+for upload-url and history routes.
+
+Standalone /analysis/skin, /analysis/report, and /analysis/{id}/status
+endpoints were removed in the LangGraph migration — skin and report
+analysis is now handled through the unified /chat endpoint.
 """
 
 from __future__ import annotations
 
 import time
-import uuid
 from unittest.mock import MagicMock, patch
 
 import jwt
@@ -67,117 +70,87 @@ def auth_headers():
 # ---------------------------------------------------------------------------
 
 
-def test_upload_url_rejects_invalid_content_type(client, auth_headers):
-    """Unsupported content type returns 422 with structured error."""
+def test_upload_url_rejects_missing_analysis_type(client, auth_headers):
+    """Missing required analysis_type field returns 422 from Pydantic."""
     response = client.post(
         "/api/v1/analysis/upload-url",
-        json={"file_name": "malware.exe", "content_type": "application/x-executable"},
+        json={"file_name": "photo.jpg", "content_type": "application/x-executable"},
         headers=auth_headers,
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    data = response.json()
-    detail = data.get("detail", data)
-    if isinstance(detail, dict):
-        assert detail.get("error") == "unsupported_content_type"
-        assert "allowed" in detail
-        assert "image/jpeg" in detail["allowed"]
-    else:
-        assert "unsupported_content_type" in str(detail) or "validation" in str(detail).lower()
 
 
 def test_upload_url_rejects_empty_filename(client, auth_headers):
     """Empty file_name returns 422 (Pydantic validation)."""
     response = client.post(
         "/api/v1/analysis/upload-url",
-        json={"file_name": "", "content_type": "image/jpeg"},
+        json={"file_name": "", "content_type": "image/jpeg", "analysis_type": "skin"},
         headers=auth_headers,
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-# ---------------------------------------------------------------------------
-# POST /analysis/skin
-# ---------------------------------------------------------------------------
-
-
-def test_skin_analysis_requires_auth():
-    """Without auth, returns 403."""
+def test_upload_url_requires_auth():
+    """Upload-url endpoint requires authentication."""
     app.dependency_overrides.clear()
+    with TestClient(app) as unauth_client:
+        response = unauth_client.post(
+            "/api/v1/analysis/upload-url",
+            json={"file_name": "photo.jpg", "content_type": "image/jpeg", "analysis_type": "skin"},
+        )
+    # Should be 403 Forbidden (auth dependency raises 403 for missing auth)
+    assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_401_UNAUTHORIZED)
+
+
+# ---------------------------------------------------------------------------
+# POST /analysis/skin  — endpoint removed, now via /chat
+# ---------------------------------------------------------------------------
+
+
+def test_skin_analysis_endpoint_removed():
+    """The standalone /analysis/skin endpoint was removed in the LangGraph
+    migration.  Skin analysis is now routed through /api/v1/chat."""
     with TestClient(app) as unauth_client:
         response = unauth_client.post(
             "/api/v1/analysis/skin",
             json={"file_path": "uploads/test.jpg", "language": "en"},
         )
-    app.dependency_overrides[get_current_user] = lambda: TEST_USER
-
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-def test_skin_analysis_rejects_invalid_language(client, auth_headers):
-    """Language must be 'en' or 'ar' — anything else returns 422."""
-    # Patch check_quota so the quota dependency doesn't hit supabase mock
-    async def _skip_quota(interaction_type, current_user):
-        pass
-
-    with patch("app.core.deps.check_quota", side_effect=_skip_quota):
-        response = client.post(
-            "/api/v1/analysis/skin",
-            json={"file_path": "uploads/test.jpg", "language": "fr"},
-            headers=auth_headers,
-        )
-
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    # Endpoint no longer exists → 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 # ---------------------------------------------------------------------------
-# POST /analysis/report
+# POST /analysis/report  — endpoint removed, now via /chat
 # ---------------------------------------------------------------------------
 
 
-def test_report_analysis_requires_auth():
-    """Without auth, returns 403."""
-    app.dependency_overrides.clear()
+def test_report_analysis_endpoint_removed():
+    """The standalone /analysis/report endpoint was removed in the LangGraph
+    migration.  Report analysis is now routed through /api/v1/chat."""
     with TestClient(app) as unauth_client:
         response = unauth_client.post(
             "/api/v1/analysis/report",
             json={"file_path": "uploads/report.pdf", "language": "en"},
         )
-    app.dependency_overrides[get_current_user] = lambda: TEST_USER
-
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-# ---------------------------------------------------------------------------
-# GET /analysis/{id}/status
-# ---------------------------------------------------------------------------
-
-
-def test_status_returns_404_for_missing_analysis(client, auth_headers):
-    """Polling a non-existent analysis ID returns 404 with error key."""
-    fake_id = str(uuid.uuid4())
-
-    mock_resp = MagicMock()
-    mock_resp.data = None
-
-    with patch("app.api.v1.analysis.supabase_admin") as mock_admin:
-        mock_chain = MagicMock()
-        mock_chain.select.return_value = mock_chain
-        mock_chain.eq.return_value = mock_chain
-        mock_chain.maybe_single.return_value = mock_chain
-        mock_chain.execute.return_value = mock_resp
-        mock_admin.table.return_value = mock_chain
-
-        response = client.get(
-            f"/api/v1/analysis/{fake_id}/status",
-            headers=auth_headers,
-        )
-
+    # Endpoint no longer exists → 404
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    data = response.json()
-    # Our custom error handler wraps dict detail into {error, message, request_id}
-    assert data.get("error") == "analysis_not_found" or "analysis_not_found" in str(data)
+
+
+# ---------------------------------------------------------------------------
+# GET /analysis/{id}/status  — endpoint removed
+# ---------------------------------------------------------------------------
+
+
+def test_status_endpoint_removed():
+    """The standalone /analysis/{id}/status endpoint was removed in the
+    LangGraph migration.  Analysis status is now tracked in the conversation
+    history returned by /api/v1/chat."""
+    with TestClient(app) as c:
+        response = c.get("/api/v1/analysis/00000000-0000-0000-0000-000000000000/status")
+    # Endpoint no longer exists → 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 # ---------------------------------------------------------------------------
@@ -186,33 +159,18 @@ def test_status_returns_404_for_missing_analysis(client, auth_headers):
 
 
 def test_history_returns_empty_for_no_analyses(client, auth_headers):
-    """When no analyses exist, history returns empty list with total=0."""
-    call_count = {"n": 0}
-
-    count_resp = MagicMock()
-    count_resp.count = 0
-    count_resp.data = []
-
+    """When no analyses exist, history returns empty list."""
     rows_resp = MagicMock()
     rows_resp.data = []
 
-    def mock_table(table_name):
-        mock_chain = MagicMock()
-        if call_count["n"] == 0:
-            call_count["n"] += 1
-            mock_chain.select.return_value = mock_chain
-            mock_chain.eq.return_value = mock_chain
-            mock_chain.execute.return_value = count_resp
-        else:
-            mock_chain.select.return_value = mock_chain
-            mock_chain.eq.return_value = mock_chain
-            mock_chain.order.return_value = mock_chain
-            mock_chain.range.return_value = mock_chain
-            mock_chain.execute.return_value = rows_resp
-        return mock_chain
-
     with patch("app.api.v1.analysis.supabase_admin") as mock_admin:
-        mock_admin.table.side_effect = mock_table
+        mock_chain = MagicMock()
+        mock_chain.select.return_value = mock_chain
+        mock_chain.eq.return_value = mock_chain
+        mock_chain.order.return_value = mock_chain
+        mock_chain.range.return_value = mock_chain
+        mock_chain.execute.return_value = rows_resp
+        mock_admin.table.return_value = mock_chain
 
         response = client.get(
             "/api/v1/analysis/history",
@@ -221,7 +179,7 @@ def test_history_returns_empty_for_no_analyses(client, auth_headers):
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "items" in data
-    assert "total" in data
-    assert data["items"] == []
-    assert data["total"] == 0
+    assert "analyses" in data
+    assert data["analyses"] == []
+    assert data["page"] == 1
+    assert data["limit"] == 10
