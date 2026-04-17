@@ -11,6 +11,8 @@ import os
 from datetime import date
 
 import httpx
+import json
+import time as _time
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -646,6 +648,8 @@ def _render_chat() -> None:
 
     with tab_send:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
+
+        # --- Conversation selector ---
         convos = []
         try:
             resp = _api_call("GET", "/chat/conversations")
@@ -662,33 +666,184 @@ def _render_chat() -> None:
             if convos and selected_convo != convo_options[0] else None
 
         chat_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], index=0)
+
+        # --- File upload ---
+        st.markdown("**\U0001f4ce Attach a file (image or PDF)**")
+        uploaded_chat_file = st.file_uploader(
+            "Choose an image or PDF",
+            type=["jpg", "jpeg", "png", "webp", "heic", "pdf"],
+            help="Attach an image or PDF to include with your message. "
+                 "It will be uploaded to storage and analysed if applicable.",
+            key="chat_file_uploader",
+        )
+
+        if uploaded_chat_file is not None:
+            if uploaded_chat_file.type and uploaded_chat_file.type.startswith("image/"):
+                st.image(uploaded_chat_file, caption=uploaded_chat_file.name, use_column_width=True)
+            else:
+                st.info(f"\U0001f4c4 {uploaded_chat_file.name} ({uploaded_chat_file.size:,} bytes)")
+
+        # --- Message input ---
         chat_msg = st.text_area("\u270f Message", height=100)
 
         if st.button("\U0001f4e4 Send", use_container_width=True):
             if not chat_msg.strip():
                 st.warning("Enter a message.")
             else:
+                file_path_to_send = None
+                file_type_to_send = None
+
+                # Step 1: Upload file if attached
+                if uploaded_chat_file is not None:
+                    with st.spinner("\U0001f4e4 Uploading file..."):
+                        content_type_upload = uploaded_chat_file.type or "image/jpeg"
+                        # Get signed upload URL
+                        resp_url = _api_call("POST", "/analysis/upload-url", json_data={
+                            "file_name": uploaded_chat_file.name,
+                            "content_type": content_type_upload,
+                            "analysis_type": "skin" if content_type_upload.startswith("image/") else "report",
+                        })
+                        if 200 <= resp_url.status_code < 300:
+                            url_data = resp_url.json()
+                            upload_url = url_data["upload_url"]
+                            file_path_to_send = url_data["file_path"]
+                            file_type_to_send = content_type_upload
+
+                            # Upload the file bytes to the signed URL
+                            uploaded_chat_file.seek(0)
+                            file_bytes = uploaded_chat_file.read()
+                            put_resp = httpx.put(
+                                upload_url,
+                                content=file_bytes,
+                                headers={"Content-Type": content_type_upload},
+                                timeout=60,
+                            )
+                            if not (200 <= put_resp.status_code < 300):
+                                st.error(f"File upload to storage failed: {put_resp.status_code}")
+                                st.code(put_resp.text[:500])
+                                file_path_to_send = None
+                        else:
+                            st.error("Failed to get upload URL for attached file.")
+                            _display_response_rich(resp_url)
+                            file_path_to_send = None
+
+                # Step 2: Send chat message (with file_path/file_type if attached)
                 payload: dict = {"content": chat_msg, "language": chat_lang}
                 if convo_id:
                     payload["conversation_id"] = convo_id
+                if file_path_to_send:
+                    payload["file_path"] = file_path_to_send
+                    payload["file_type"] = file_type_to_send
 
                 url = f"{API_PREFIX}/chat/message"
                 headers = _headers()
                 headers["Accept"] = "text/event-stream"
 
                 response_text = ""
+                analysis_meta_info = None
+                error_info = None
                 with st.spinner("\U0001f4ac Streaming response..."):
-                    with httpx.stream("POST", url, json=payload, headers=headers, timeout=60) as stream:
+                    with httpx.stream("POST", url, json=payload, headers=headers, timeout=120) as stream:
                         for line in stream.iter_lines():
-                            if line.startswith("data: "):
-                                data = line[6:]
-                                if data == "[DONE]":
-                                    break
-                                response_text += data
+                            if not line.startswith("data: "):
+                                continue
+                            raw = line[6:]
+                            if raw.strip() == "[DONE]":
+                                break
+                            try:
+                                event = json.loads(raw)
+                            except json.JSONDecodeError:
+                                # Fallback: treat as plain text content
+                                response_text += raw
+                                continue
 
-                # Show as chat bubbles
-                st.markdown(f'<div class="aura-chat-user">{chat_msg}</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="aura-chat-assistant">{response_text}</div>', unsafe_allow_html=True)
+                            event_type = event.get("type", "")
+                            if event_type == "content":
+                                response_text += event.get("text", "")
+                            elif event_type == "analysis_meta":
+                                analysis_meta_info = event
+                            elif event_type == "quota_error":
+                                error_info = ("quota", event.get("message", "Quota exceeded"))
+                            elif event_type == "analysis_error":
+                                error_info = ("analysis", event.get("message", "Analysis error"))
+
+                # Show user bubble
+                if file_path_to_send:
+                    file_label = "\U0001f4ce " + (uploaded_chat_file.name if uploaded_chat_file else "file")
+                    st.markdown(
+                        f'<div class="aura-chat-user">{chat_msg}<br><small>{file_label}</small></div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(f'<div class="aura-chat-user">{chat_msg}</div>', unsafe_allow_html=True)
+
+                # Show assistant bubble and errors
+                if error_info and error_info[0] == "quota":
+                    st.error(f"\u26a0 {error_info[1]}")
+                elif error_info and error_info[0] == "analysis":
+                    st.warning(f"\u26a0 Analysis error: {error_info[1]}")
+
+                if response_text:
+                    st.markdown(f'<div class="aura-chat-assistant">{response_text}</div>', unsafe_allow_html=True)
+
+                # Step 3: Fetch and display analysis results if meta was received
+                if analysis_meta_info:
+                    analysis_id = analysis_meta_info.get("analysis_id", "")
+                    analysis_type = analysis_meta_info.get("analysis_type", "unknown")
+                    st.markdown(
+                        _badge_html(f"Analysis: {analysis_type}", "badge-rose") +
+                        " " + _badge_html(f"ID: {analysis_id[:8]}...", "badge-info"),
+                        unsafe_allow_html=True,
+                    )
+
+                    # Try to fetch analysis results
+                    fetch_convo_id = convo_id
+                    if not fetch_convo_id:
+                        try:
+                            refresh_resp = _api_call("GET", "/chat/conversations")
+                            if 200 <= refresh_resp.status_code < 300:
+                                latest = refresh_resp.json()
+                                if latest:
+                                    fetch_convo_id = latest[0].get("id")
+                        except Exception:
+                            pass
+
+                    if fetch_convo_id:
+                        with st.spinner("\U0001f52c Fetching analysis results..."):
+                            # Give the backend a moment to finish processing
+                            _time.sleep(2)
+                            analysis_resp = _api_call(
+                                "GET", f"/chat/conversations/{fetch_convo_id}/analysis"
+                            )
+                            if 200 <= analysis_resp.status_code < 300:
+                                analysis_data = analysis_resp.json()
+                                result = analysis_data.get("result", {})
+                                status = analysis_data.get("status", "unknown")
+                                st.markdown(_analysis_status_badge(status), unsafe_allow_html=True)
+
+                                if result and isinstance(result, dict):
+                                    with st.expander("\U0001f52c Analysis Results", expanded=True):
+                                        for k, v in result.items():
+                                            if isinstance(v, list):
+                                                st.markdown(f"**{k.replace('_', ' ').title()}:**")
+                                                for item in v:
+                                                    if isinstance(item, dict):
+                                                        for ik, iv in item.items():
+                                                            st.markdown(f"- **{ik}:** {iv}")
+                                                    else:
+                                                        st.markdown(f"- {item}")
+                                            elif isinstance(v, dict):
+                                                st.markdown(f"**{k.replace('_', ' ').title()}:**")
+                                                for ik, iv in v.items():
+                                                    st.markdown(f"- **{ik}:** {iv}")
+                                            else:
+                                                st.markdown(f"**{k.replace('_', ' ').title()}:** {v}")
+                                elif status in ("pending", "processing"):
+                                    st.info("Analysis is still processing. Check the Analysis tab for results later.")
+                            elif analysis_resp.status_code == 404:
+                                st.info("Analysis results not yet available. Check the Analysis tab later.")
+                elif not error_info and not response_text:
+                    st.warning("No response received from the server.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_convos:
@@ -723,7 +878,10 @@ def _render_chat() -> None:
                                     role = m.get("role", "unknown")
                                     content = m.get("content", "")
                                     cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
-                                    st.markdown(f'<div class="{cls}">{content}</div>', unsafe_allow_html=True)
+                                    file_info = ""
+                                    if m.get("file_path"):
+                                        file_info = f'<br><small>\U0001f4ce {m["file_path"]}</small>'
+                                    st.markdown(f'<div class="{cls}">{content}{file_info}</div>', unsafe_allow_html=True)
                             else:
                                 _display_response_rich(resp)
                     with col_d:
@@ -737,10 +895,6 @@ def _render_chat() -> None:
         else:
             st.info("No conversations yet. Click Refresh to load.")
 
-
-# ---------------------------------------------------------------------------
-# Analysis Page
-# ---------------------------------------------------------------------------
 
 
 def _render_analysis() -> None:
