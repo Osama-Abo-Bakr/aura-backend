@@ -898,17 +898,61 @@ def _render_chat() -> None:
 
 
 def _render_analysis() -> None:
-    st.header("\U0001f52c Analysis")
+    st.header("\U0001f52c Analysis History")
     if not _ensure_auth():
         return
 
-    tab_upload_url, tab_file_upload, tab_submit, tab_status, tab_history = st.tabs(
-        ["Upload URL", "File Upload", "Submit Analysis", "Check Status", "History"]
-    )
+    st.info("\U0001f4ac Skin and report analysis is now done in the **Chat** tab. Attach an image or PDF to any message and the AI will analyze it inline.")
+
+    tab_history, tab_upload_url = st.tabs(["History", "Upload URL (API)"])
+
+    with tab_history:
+        st.subheader("Past Analyses")
+        page_num = st.number_input("\U0001f4c3 Page", min_value=1, value=1, key="hist_page")
+        page_limit = st.number_input("Limit", min_value=1, max_value=50, value=10, key="hist_limit")
+        if st.button("\U0001f4da Load History", width="stretch"):
+            resp = _api_call("GET", "/analysis/history", params={"page": page_num, "limit": page_limit})
+            if 200 <= resp.status_code < 300:
+                data = resp.json()
+                analyses = data.get("analyses", [])
+                if analyses:
+                    for a in analyses:
+                        a_type = a.get("analysis_type", "?")
+                        a_status = a.get("status", "?")
+                        a_date = (a.get("created_at") or "")[:10]
+                        st.markdown(
+                            '<div class="aura-card">' +
+                            _analysis_status_badge(a_status) + " " +
+                            _badge_html(a_type.upper(), "badge-rose") + " " +
+                            _badge_html(a_date, "badge-info") +
+                            '</div>',
+                            unsafe_allow_html=True,
+                        )
+                        result = a.get("result")
+                        if result and isinstance(result, dict):
+                            with st.expander("\U0001f52c Results"):
+                                for k, v in result.items():
+                                    if isinstance(v, list):
+                                        st.markdown(f"**{k.replace('_', ' ').title()}:**")
+                                        for item in v:
+                                            if isinstance(item, dict):
+                                                for ik, iv in item.items():
+                                                    st.markdown(f"- **{ik}:** {iv}")
+                                            else:
+                                                st.markdown(f"- {item}")
+                                    else:
+                                        st.markdown(f"**{k.replace('_', ' ').title()}:** {v}")
+                    with st.expander("Raw JSON"):
+                        st.json(data)
+                else:
+                    st.info("No analyses yet. Start a chat with an image or PDF to get your first analysis!")
+            else:
+                _display_response_rich(resp)
 
     with tab_upload_url:
         st.markdown('<div class="aura-card">', unsafe_allow_html=True)
         st.subheader("Generate Upload URL")
+        st.caption("Use this to get a signed URL for direct file upload to Supabase Storage. Then attach the file in the Chat tab.")
         with st.form("upload_url_form"):
             file_name = st.text_input("\U0001f4c4 File Name", value="test.jpg")
             content_type = st.selectbox("\U0001f4f7 Content Type", [
@@ -926,148 +970,13 @@ def _render_analysis() -> None:
                 st.success("Upload URL generated!")
                 st.code(data.get("upload_url", ""), language="http")
                 st.markdown(f'**File Path:** `{data.get("file_path", "")}`')
-                st.caption("Copy the file path above to submit analysis, or use the File Upload tab.")
+                st.caption("Copy the file path and use it in the Chat tab to attach the file.")
                 st.session_state["analysis_file_path"] = data.get("file_path", "")
                 with st.expander("Raw JSON"):
                     st.json(data)
             else:
                 _display_response_rich(resp)
         st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab_file_upload:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
-        st.subheader("\U0001f4e4 Upload a File for Analysis")
-        uploaded_file = st.file_uploader(
-            "Choose an image or PDF",
-            type=["jpg", "jpeg", "png", "webp", "heic", "pdf"],
-            help="Select a file to upload. It will be sent to Supabase Storage automatically.",
-        )
-        if uploaded_file is not None:
-            # Show preview
-            if uploaded_file.type and uploaded_file.type.startswith("image/"):
-                st.image(uploaded_file, caption=uploaded_file.name, width="stretch")
-            else:
-                st.info(f"\U0001f4c4 {uploaded_file.name} ({uploaded_file.size:,} bytes)")
-
-            analysis_type_upload = st.selectbox("\U0001f9ea Analysis Type", ["skin", "report"], key="file_upload_type")
-            content_type_upload = uploaded_file.type or "image/jpeg"
-
-            if st.button("\u26a1 Upload & Prepare", width="stretch"):
-                # Step 1: Get pre-signed URL
-                with st.spinner("Generating upload URL..."):
-                    resp = _api_call("POST", "/analysis/upload-url", json_data={
-                        "file_name": uploaded_file.name,
-                        "content_type": content_type_upload,
-                        "analysis_type": analysis_type_upload,
-                    })
-
-                if 200 <= resp.status_code < 300:
-                    data = resp.json()
-                    upload_url = data["upload_url"]
-                    file_path = data["file_path"]
-
-                    # Step 2: Upload file to pre-signed URL
-                    with st.spinner("Uploading file to storage..."):
-                        uploaded_file.seek(0)
-                        file_bytes = uploaded_file.read()
-                        put_resp = httpx.put(upload_url, content=file_bytes,
-                                             headers={"Content-Type": content_type_upload}, timeout=60)
-
-                    if 200 <= put_resp.status_code < 300:
-                        st.session_state["analysis_file_path"] = file_path
-                        st.success("\u2705 File uploaded successfully!")
-                        st.markdown(f'**File Path:** `{file_path}`')
-                        st.caption("Switch to 'Submit Analysis' tab to run the analysis.")
-                    else:
-                        st.error(f"Upload to storage failed: {put_resp.status_code}")
-                        st.code(put_resp.text[:500])
-                else:
-                    _display_response_rich(resp)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab_submit:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
-        st.subheader("Submit Analysis")
-        analysis_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], key="analysis_lang")
-        file_path = st.text_input(
-            "\U0001f4c2 File Path",
-            value=st.session_state.get("analysis_file_path", ""),
-            help="Auto-populated after file upload. You can also paste manually.",
-        )
-
-        col_skin, col_report = st.columns(2)
-        with col_skin:
-            if st.button("\U0001f9b5 Skin Analysis", width="stretch"):
-                if not file_path:
-                    st.warning("Enter a file path.")
-                else:
-                    resp = _api_call("POST", "/analysis/skin", json_data={
-                        "file_path": file_path, "language": analysis_lang,
-                    })
-                    if 200 <= resp.status_code < 300:
-                        data = resp.json()
-                        st.success("Analysis submitted!")
-                        st.markdown(f'**Analysis ID:** `{data.get("id", "")}`')
-                        st.caption("Use the Check Status tab to poll for results.")
-                        with st.expander("Raw JSON"):
-                            st.json(data)
-                    else:
-                        _display_response_rich(resp)
-
-        with col_report:
-            if st.button("\U0001f4ca Report Analysis", width="stretch"):
-                if not file_path:
-                    st.warning("Enter a file path.")
-                else:
-                    resp = _api_call("POST", "/analysis/report", json_data={
-                        "file_path": file_path, "language": analysis_lang,
-                    })
-                    if 200 <= resp.status_code < 300:
-                        data = resp.json()
-                        st.success("Analysis submitted!")
-                        st.markdown(f'**Analysis ID:** `{data.get("id", "")}`')
-                        with st.expander("Raw JSON"):
-                            st.json(data)
-                    else:
-                        _display_response_rich(resp)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab_status:
-        st.markdown('<div class="aura-card">', unsafe_allow_html=True)
-        st.subheader("Check Analysis Status")
-        status_id = st.text_input("\U0001f194 Analysis ID")
-        if st.button("\U0001f50d Check Status", width="stretch"):
-            if not status_id:
-                st.warning("Enter an analysis ID.")
-            else:
-                resp = _api_call("GET", f"/analysis/{status_id}/status")
-                if 200 <= resp.status_code < 300:
-                    data = resp.json()
-                    status_val = data.get("status", "unknown")
-                    st.markdown(_analysis_status_badge(status_val), unsafe_allow_html=True)
-                    if status_val == "completed" and data.get("result"):
-                        st.subheader("Result")
-                        result = data["result"]
-                        if isinstance(result, dict):
-                            for k, v in result.items():
-                                st.markdown(f"**{k}:** {v}")
-                        else:
-                            st.write(result)
-                    elif status_val in ("pending", "processing"):
-                        st.info("Analysis still in progress. Click Check Status again in a moment.")
-                    with st.expander("Raw JSON"):
-                        st.json(data)
-                else:
-                    _display_response_rich(resp)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab_history:
-        st.subheader("Analysis History")
-        page_num = st.number_input("\U0001f4c3 Page", min_value=1, value=1, key="hist_page")
-        page_limit = st.number_input("Limit", min_value=1, max_value=50, value=10, key="hist_limit")
-        if st.button("\U0001f4da Load History", width="stretch"):
-            resp = _api_call("GET", "/analysis/history", params={"page": page_num, "limit": page_limit})
-            _display_response_rich(resp)
 
 
 # ---------------------------------------------------------------------------
