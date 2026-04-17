@@ -7,18 +7,19 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
 
 from app.db.supabase import supabase_admin
 from app.graph.prompts import (
     ANALYSIS_FOLLOWUP_TEMPLATE,
     HEALTH_SYSTEM_PROMPT,
     MEMORY_CONTEXT_TEMPLATE,
-    REPORT_ANALYSIS_PROMPT,
-    SKIN_ANALYSIS_PROMPT,
 )
 from app.graph.state import ConversationState
-from app.services.gemini import analyze_skin, explain_medical_report, stream_chat_response
+from app.services.gemini import (
+    analyze_skin,
+    explain_medical_report,
+    stream_chat_response,
+)
 from app.services.memory import build_summary_context
 from app.services.storage import download_file
 

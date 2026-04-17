@@ -3,7 +3,6 @@ through a LangGraph state machine with SSE streaming."""
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timezone
 from uuid import uuid4
