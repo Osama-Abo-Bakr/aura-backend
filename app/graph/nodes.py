@@ -22,8 +22,8 @@ from app.services.gemini import (
     stream_chat_response,
 )
 from app.services.memory import (
-    build_summary_context,
     build_cycle_context,
+    build_summary_context,
     get_conversation_analysis,
 )
 from app.services.storage import download_file
