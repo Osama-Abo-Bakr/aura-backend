@@ -361,6 +361,99 @@ input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 0 3px rgba(196, 114, 127, 0.2) !important;
     border-color: var(--aura-rose) !important;
 }
+
+/* Chat error card */
+.aura-error-card {
+    background: #fdf2f2;
+    border-left: 3px solid var(--aura-error);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin: 8px 0;
+    color: var(--aura-error);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.aura-error-card .error-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.aura-error-card .error-msg {
+    flex: 1;
+}
+
+/* Typing indicator animation */
+.aura-typing {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    color: var(--aura-plum-light);
+    font-size: 0.85rem;
+}
+.aura-typing .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--aura-rose-light);
+    animation: aura-bounce 1.4s infinite ease-in-out;
+}
+.aura-typing .dot:nth-child(1) { animation-delay: 0s; }
+.aura-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+.aura-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aura-bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Upload zone header */
+.aura-upload-zone-header {
+    text-align: center;
+    margin-bottom: 12px;
+}
+.aura-upload-zone-header .upload-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 4px;
+}
+.aura-upload-zone-header .upload-title {
+    font-weight: 600;
+    color: var(--aura-plum);
+    font-size: 1rem;
+}
+.aura-upload-zone-header .upload-desc {
+    color: var(--aura-plum-light);
+    font-size: 0.85rem;
+}
+
+/* Conversation card */
+.aura-convo-card {
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--aura-peach-dark);
+    border-left: 3px solid var(--aura-rose);
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.aura-convo-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+.aura-convo-card .convo-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--aura-plum);
+    margin-bottom: 4px;
+}
+.aura-convo-card .convo-meta {
+    font-size: 0.8rem;
+    color: var(--aura-plum-light);
+    margin-bottom: 8px;
+}
 """
 
 
@@ -809,8 +902,17 @@ def _render_chat() -> None:
 
         chat_lang = st.selectbox("\U0001f310 Language", ["en", "ar"], index=0)
 
-        # --- File upload ---
-        st.markdown("**\U0001f4ce Attach a file (image or PDF)**")
+        # --- File upload (styled upload zone) ---
+        st.markdown('</div>', unsafe_allow_html=True)  # close aura-card for upload zone
+        st.markdown(
+            '<div class="aura-upload-zone">'
+            '<div class="aura-upload-zone-header">'
+            '<span class="upload-icon">\U0001f4ce</span>'
+            '<span class="upload-title">Attach a File</span><br>'
+            '<span class="upload-desc">Upload an image or PDF to include with your message</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
         uploaded_chat_file = st.file_uploader(
             "Choose an image or PDF",
             type=["jpg", "jpeg", "png", "webp", "heic", "pdf"],
@@ -824,6 +926,8 @@ def _render_chat() -> None:
                 st.image(uploaded_chat_file, caption=uploaded_chat_file.name, width="stretch")
             else:
                 st.markdown(f'<div class="aura-empty">\U0001f4c4 {uploaded_chat_file.name} ({uploaded_chat_file.size:,} bytes)</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)  # close aura-upload-zone
+        st.markdown('<div class="aura-card">', unsafe_allow_html=True)  # reopen aura-card
 
         # --- Message input ---
         chat_msg = st.text_area("\u270f Message", height=100)
@@ -884,6 +988,15 @@ def _render_chat() -> None:
                 response_text = ""
                 analysis_meta_info = None
                 error_info = None
+                typing_placeholder = st.empty()
+                typing_placeholder.markdown(
+                    '<div class="aura-chat-assistant">'
+                    '<div class="aura-typing">'
+                    '<span class="dot"></span><span class="dot"></span><span class="dot"></span>'
+                    ' Thinking...'
+                    '</div></div>',
+                    unsafe_allow_html=True,
+                )
                 with st.spinner("\U0001f4ac Streaming response..."):
                     with httpx.stream("POST", url, json=payload, headers=headers, timeout=120) as stream:
                         for line in stream.iter_lines():
@@ -919,11 +1032,26 @@ def _render_chat() -> None:
                 else:
                     st.markdown(f'<div class="aura-chat-user">{chat_msg}</div>', unsafe_allow_html=True)
 
-                # Show assistant bubble and errors
+                # Clear the typing indicator
+                typing_placeholder.empty()
+
+                # Show styled error messages
                 if error_info and error_info[0] == "quota":
-                    st.error(f"\u26a0 {error_info[1]}")
+                    st.markdown(
+                        f'<div class="aura-error-card">'
+                        f'<span class="error-icon">\u26a0\ufe0f</span>'
+                        f'<span class="error-msg">{error_info[1]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
                 elif error_info and error_info[0] == "analysis":
-                    st.warning(f"\u26a0 Analysis error: {error_info[1]}")
+                    st.markdown(
+                        f'<div class="aura-error-card">'
+                        f'<span class="error-icon">\u26a0\ufe0f</span>'
+                        f'<span class="error-msg">Analysis error: {error_info[1]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
                 if response_text:
                     st.markdown(f'<div class="aura-chat-assistant">{response_text}</div>', unsafe_allow_html=True)
@@ -933,8 +1061,12 @@ def _render_chat() -> None:
                     analysis_id = analysis_meta_info.get("analysis_id", "")
                     analysis_type = analysis_meta_info.get("analysis_type", "unknown")
                     st.markdown(
-                        _badge_html(f"Analysis: {analysis_type}", "badge-rose") +
-                        " " + _badge_html(f"ID: {analysis_id[:8]}...", "badge-info"),
+                        '<div class="aura-card-dark">'
+                        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+                        f'{_badge_html(f"Analysis: {analysis_type}", "badge-rose")}'
+                        f'</div>'
+                        f'<small style="opacity:0.6">ID: {analysis_id[:8]}...</small>'
+                        '</div>',
                         unsafe_allow_html=True,
                     )
 
@@ -985,7 +1117,13 @@ def _render_chat() -> None:
                             elif analysis_resp.status_code == 404:
                                 st.markdown('<div class="aura-empty">\U0001f52c Analysis results not yet available.<br>Check the Analysis tab later.</div>', unsafe_allow_html=True)
                 elif not error_info and not response_text:
-                    st.markdown('<div class="aura-empty">\u26a0 No response received from the server.</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="aura-error-card">'
+                        '<span class="error-icon">\u26a0\ufe0f</span>'
+                        '<span class="error-msg">No response received from the server.</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab_convos:
@@ -1004,40 +1142,61 @@ def _render_chat() -> None:
                 title = c.get("title", "Untitled")
                 lang = c.get("language", "?")
                 msg_count = c.get("message_count", 0)
-                with st.expander(f"\U0001f4ac {title}"):
-                    st.markdown(
-                        _badge_html(lang.upper(), "badge-info") + " " +
-                        _badge_html(f"{msg_count} msgs", "badge-plum"),
-                        unsafe_allow_html=True,
-                    )
-                    st.caption(f"ID: {c['id'][:8]}... | Created: {c.get('created_at', '?')[:10]}")
+                created = c.get("created_at", "?")[:10]
+                convo_id_short = c["id"][:8]
 
-                    col_v, col_d = st.columns(2)
-                    with col_v:
-                        if st.button("\U0001f441 View", key=f"view_{c['id']}"):
-                            with st.spinner("Loading messages..."):
-                                resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
-                            if 200 <= resp.status_code < 300:
-                                msgs = resp.json()
-                                for m in msgs:
-                                    role = m.get("role", "unknown")
-                                    content = m.get("content", "")
-                                    cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
-                                    file_info = ""
-                                    if m.get("file_path"):
-                                        file_info = f'<br><small>\U0001f4ce {m["file_path"]}</small>'
-                                    st.markdown(f'<div class="{cls}">{content}{file_info}</div>', unsafe_allow_html=True)
-                            else:
-                                _display_response_rich(resp)
-                    with col_d:
-                        if st.button("\U0001f5d1 Delete", key=f"del_{c['id']}"):
+                st.markdown(
+                    f'<div class="aura-convo-card">'
+                    f'<div class="convo-title">\U0001f4ac {title}</div>'
+                    f'<div class="convo-meta">'
+                    f'{_badge_html(lang.upper(), "badge-info")} '
+                    f'{_badge_html(f"{msg_count} msgs", "badge-plum")} '
+                    f'{_badge_html(created, "badge-gold")}'
+                    f'</div>'
+                    f'<small style="color:var(--aura-plum-light);font-size:0.75rem">ID: {convo_id_short}...</small>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+                col_v, col_d = st.columns(2)
+                with col_v:
+                    if st.button("\U0001f441 View", key=f"view_{c['id']}"):
+                        with st.spinner("Loading messages..."):
+                            resp = _api_call("GET", f"/chat/conversations/{c['id']}/messages")
+                        if 200 <= resp.status_code < 300:
+                            msgs = resp.json()
+                            for m in msgs:
+                                role = m.get("role", "unknown")
+                                content = m.get("content", "")
+                                cls = "aura-chat-user" if role == "user" else "aura-chat-assistant"
+                                file_info = ""
+                                if m.get("file_path"):
+                                    file_info = f'<br><small>\U0001f4ce {m["file_path"]}</small>'
+                                st.markdown(f'<div class="{cls}">{content}{file_info}</div>', unsafe_allow_html=True)
+                        else:
+                            _display_response_rich(resp)
+                with col_d:
+                    if st.button("\U0001f5d1 Delete", key=f"del_{c['id']}"):
+                        st.session_state[f"confirm_del_{c['id']}"] = True
+
+                # Delete confirmation
+                if st.session_state.get(f"confirm_del_{c['id']}", False):
+                    st.warning(f"Delete conversation \"{title}\"? This cannot be undone.")
+                    cf1, cf2 = st.columns(2)
+                    with cf1:
+                        if st.button("\u2705 Confirm Delete", key=f"cfm_{c['id']}"):
                             with st.spinner("Deleting..."):
                                 resp = _api_call("DELETE", f"/chat/conversations/{c['id']}")
                             if 200 <= resp.status_code < 300:
                                 st.success("Deleted!")
                                 st.session_state.pop("chat_convos", None)
+                                st.session_state.pop(f"confirm_del_{c['id']}", None)
                             else:
                                 _display_response_rich(resp)
+                                st.session_state.pop(f"confirm_del_{c['id']}", None)
+                    with cf2:
+                        if st.button("\u274c Cancel", key=f"cnl_{c['id']}"):
+                            st.session_state.pop(f"confirm_del_{c['id']}", None)
         else:
             st.markdown('<div class="aura-empty">\U0001f4ac No conversations yet.<br>Click Refresh to load.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
